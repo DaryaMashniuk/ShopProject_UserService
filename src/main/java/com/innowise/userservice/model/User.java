@@ -11,17 +11,20 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDate;
 import java.util.List;
 
-@Entity
-@Table(name = "users")
+@EqualsAndHashCode(callSuper = true)
 @Getter
 @Setter
+@Entity
+@Table(name = "users")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
