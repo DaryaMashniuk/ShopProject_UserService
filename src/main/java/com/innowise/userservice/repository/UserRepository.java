@@ -10,11 +10,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
   boolean existsByEmail(String email);
-  User findByEmail(String email);
+  Optional<User> findByEmail(String email);
 
   @Modifying
   @Query("UPDATE User u SET u.active=:active WHERE u.id=:id")
@@ -23,6 +24,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
   @Query(value = "SELECT * FROM users WHERE active = true", nativeQuery = true)
   List<User> findAllActiveUsers();
 
-  @Query("SELECT COUNT(pc) FROM PaymentCard pc WHERE pc.user.id = :userId")
-  int countPaymentCardsByUserId(@Param("userId") Long userId);
+  @Query("SELECT u FROM User u LEFT JOIN FETCH u.paymentCards WHERE u.id = :id")
+  Optional<User> findByIdWithCards(@Param("id") Long id);
 }

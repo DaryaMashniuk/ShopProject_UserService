@@ -2,13 +2,18 @@ package com.innowise.userservice.service.impl;
 
 import com.innowise.userservice.exceptions.CardNotFoundException;
 import com.innowise.userservice.exceptions.MaxCardAmountLimitException;
+import com.innowise.userservice.exceptions.UserNotFoundException;
+import com.innowise.userservice.mapper.PaymentCardMapper;
+import com.innowise.userservice.mapper.PageResponseMapper;
 import com.innowise.userservice.model.PaymentCard;
 import com.innowise.userservice.model.User;
+import com.innowise.userservice.model.dto.PageResponseDto;
+import com.innowise.userservice.model.dto.PaymentCardRequestDto;
+import com.innowise.userservice.model.dto.PaymentCardResponseDto;
 import com.innowise.userservice.repository.PaymentCardRepository;
+import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.PaymentCardService;
-import com.innowise.userservice.service.UserService;
 import com.innowise.userservice.specifications.CardSpecification;
-import com.innowise.userservice.specifications.UserSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,77 +32,83 @@ import java.util.Map;
 public class PaymentCardServiceImpl implements PaymentCardService {
 
   private final PaymentCardRepository paymentCardRepository;
-  private final UserService userService;
-  private final Logger logger = LogManager.getLogger(PaymentCardServiceImpl.class);
+  private final PaymentCardMapper paymentCardMapper;
+  private final PageResponseMapper pageResponseMapper;
+  private static final Logger logger = LogManager.getLogger(PaymentCardServiceImpl.class);
+  private final UserRepository userRepository;
 
   @Override
-  public PaymentCard createPaymentCard(PaymentCard paymentCard) {
-    long userId = paymentCard.getUser().getId();
-    int amountOfCards = userService.countPaymentCardsByUserId(userId);
+  public PaymentCardResponseDto createPaymentCard(PaymentCardRequestDto paymentCardRequestDto) {
+    long userId = paymentCardRequestDto.getUserId();
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+userId));
+    int amountOfCards = paymentCardRepository.countPaymentCardsByUserId(userId);
     if (amountOfCards >= 5)
     {
       throw new MaxCardAmountLimitException("User with id "+ userId+" already has 5 cards");
     }
-    return paymentCardRepository.save(paymentCard);
+    PaymentCard card = paymentCardMapper.toEntity(paymentCardRequestDto);
+    card.setUser(user);
+    return paymentCardMapper.toResponseDto(paymentCardRepository.save(card));
   }
 
   @Override
-  public PaymentCard getPaymentCardById(long id) {
+  public PaymentCardResponseDto findPaymentCardById(long id) {
     return paymentCardRepository
             .findById(id)
+            .map(paymentCardMapper::toResponseDto)
            .orElseThrow(() -> new CardNotFoundException("No card with id = "+ id));
   }
 
   @Override
-  public List<PaymentCard> getAllPaymentCards() {
-    return paymentCardRepository.findAll();
+  public List<PaymentCardResponseDto> findAllPaymentCards() {
+    return paymentCardMapper.toResponseDtoList(paymentCardRepository.findAll());
   }
 
   @Override
-  public Page<PaymentCard> getAllPaymentCards(Pageable pageable) {
-    return paymentCardRepository.findAll(pageable);
+  public PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(Pageable pageable) {
+    Page<PaymentCard> cards = paymentCardRepository.findAll(pageable);
+    return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
 
   @Transactional
   @Override
-  public PaymentCard updatePaymentCardById(PaymentCard paymentCard) {
-    PaymentCard newCard = getPaymentCardById(paymentCard.getId());
-    if (paymentCard.getNumber() != null) {
-      newCard.setNumber(paymentCard.getNumber());
-    }
-    if (paymentCard.getExpirationDate() != null) {
-      newCard.setExpirationDate(paymentCard.getExpirationDate());
-    }
+  public PaymentCardResponseDto updatePaymentCardById(PaymentCardRequestDto paymentCardRequestDto, long id) {
+    PaymentCard newCard = paymentCardRepository
+            .findById(id)
+            .orElseThrow(() -> new CardNotFoundException("No card with id = "+ id));
 
-    if (paymentCard.getHolder() != null) {
-      newCard.setHolder(paymentCard.getHolder());
-    }
-    return paymentCardRepository.save(newCard);
+    paymentCardMapper.updateEntityFromDto(paymentCardRequestDto, newCard);
+    return paymentCardMapper.toResponseDto(newCard);
   }
 
   @Transactional
   @Override
   public void deletePaymentCardById(long id) {
-    getPaymentCardById(id);
+    PaymentCard card = paymentCardRepository
+            .findById(id)
+            .orElseThrow(() -> new CardNotFoundException("No card with id = "+ id));
     logger.info("Delete payment card with id ={}",id);
-    paymentCardRepository.deleteById(id);
+    paymentCardRepository.delete(card);
   }
 
   @Transactional
   @Override
   public void updatePaymentCardStatusById(long id, boolean status) {
-    getPaymentCardById(id);
+    PaymentCard card = paymentCardRepository
+            .findById(id)
+            .orElseThrow(() -> new CardNotFoundException("No card with id = "+ id));
     logger.info("Update payment card with id = {} ",id);
-    paymentCardRepository.updateStatusById(id, status);
+    card.setActive(status);
   }
 
   @Override
-  public List<PaymentCard> getUsersPaymentCardsById(long id) {
-    return paymentCardRepository.findPaymentCardsByUserId(id);
+  public List<PaymentCardResponseDto> findUsersPaymentCardsById(long id) {
+    return paymentCardMapper.toResponseDtoList(paymentCardRepository.findPaymentCardsByUserId(id));
   }
 
   @Override
-  public Page<PaymentCard> findAllCardsByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
+  public PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
     Specification<PaymentCard> spec = Specification.where((Specification<PaymentCard>) null);
 
     if (StringUtils.hasLength(searchCriteria.get("number"))){
@@ -107,6 +118,8 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     if (StringUtils.hasLength(searchCriteria.get("holder"))){
       spec = spec.and(CardSpecification.containsHolderCaseInsensitive(searchCriteria.get("holder")));
     }
-    return paymentCardRepository.findAll(spec, pageable);
+    Page<PaymentCard> cards = paymentCardRepository.findAll(spec, pageable);
+    return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
+
 }

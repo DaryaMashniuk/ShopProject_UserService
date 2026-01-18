@@ -1,7 +1,10 @@
 package com.innowise.userservice.service;
 
-import com.innowise.userservice.model.PaymentCard;
 import com.innowise.userservice.model.User;
+import com.innowise.userservice.model.dto.PageResponseDto;
+import com.innowise.userservice.model.dto.UserRequestDto;
+import com.innowise.userservice.model.dto.UserResponseDto;
+import com.innowise.userservice.model.dto.UserWithCardsDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -9,16 +12,16 @@ import java.util.List;
 import java.util.Map;
 
 public interface UserService {
-  User createUser(User user);
+  UserResponseDto createUser(UserRequestDto userRequestDto);
   boolean existsByEmail(String email);
-  User findUserById(long id);
-  User findUserByEmail(String email);
-  Page<User> findAllUsers(Pageable pageable);
-  List<User> findAllUsers();
-  List<User> findAllActiveUsers();
-  User updateUserById(User user);
+  UserResponseDto findUserById(long id);
+  UserResponseDto findUserByEmail(String email);
+  PageResponseDto<UserResponseDto> findAllUsers(Pageable pageable);
+  List<UserResponseDto> findAllUsers();
+  List<UserResponseDto> findAllActiveUsers();
+  UserResponseDto updateUserById(UserRequestDto userRequestDto, long id);
   void deleteUserById(long id);
   void updateUserActiveStatusById(long id,boolean status);
-  Page<User> findAllUsersByCriteria(Map<String,String> searchCriteria, Pageable pageable);
-  int countPaymentCardsByUserId(long id);
+  PageResponseDto<UserResponseDto> findAllUsersByCriteria(Map<String,String> searchCriteria, Pageable pageable);
+  UserWithCardsDto findUserWithCardsByUserId(long id);
 }
