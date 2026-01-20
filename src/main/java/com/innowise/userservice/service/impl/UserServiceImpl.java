@@ -1,13 +1,14 @@
 package com.innowise.userservice.service.impl;
 
-import com.innowise.userservice.exceptions.UserAlreadyWithEmailException;
-import com.innowise.userservice.exceptions.UserNotFoundException;
+import com.innowise.userservice.exceptions.ResourceNotFoundException;
+import com.innowise.userservice.exceptions.UserAlreadyExistsWithEmailException;
 import com.innowise.userservice.mapper.UserMapper;
 import com.innowise.userservice.mapper.PageResponseMapper;
 import com.innowise.userservice.model.User;
 import com.innowise.userservice.model.dto.PageResponseDto;
 import com.innowise.userservice.model.dto.UserRequestDto;
 import com.innowise.userservice.model.dto.UserResponseDto;
+import com.innowise.userservice.model.dto.UserSearchCriteriaDto;
 import com.innowise.userservice.model.dto.UserWithCardsDto;
 import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.UserService;
@@ -37,7 +38,7 @@ public class UserServiceImpl implements UserService {
   public UserResponseDto createUser(UserRequestDto userRequestDto) {
     User user = userMapper.toEntity(userRequestDto);
       if (existsByEmail(user.getEmail())) {
-        throw new UserAlreadyWithEmailException("User with email " + user.getEmail() + " already exists");
+        throw new UserAlreadyExistsWithEmailException("User with email " + user.getEmail() + " already exists");
       }
       return userMapper.toResponseDto(userRepository.save(user));
   }
@@ -53,7 +54,7 @@ public class UserServiceImpl implements UserService {
     return userRepository
             .findById(id)
             .map(userMapper::toResponseDto)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+id));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
   }
 
   @Override
@@ -61,7 +62,7 @@ public class UserServiceImpl implements UserService {
     return userRepository
             .findByEmail(email)
             .map(userMapper::toResponseDto)
-            .orElseThrow(() -> new UserNotFoundException("User not found with email = "+email));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
   }
 
   @Override
@@ -85,12 +86,12 @@ public class UserServiceImpl implements UserService {
   public UserResponseDto updateUserById(UserRequestDto userRequestDto, long id) {
     User newUser = userRepository
             .findById(id)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+id));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
       if (userRequestDto.getEmail() != null &&
               !userRequestDto.getEmail().equals(newUser.getEmail()) &&
               existsByEmail(userRequestDto.getEmail())) {
-          throw new UserAlreadyWithEmailException("User with email " + userRequestDto.getEmail() + " already exists");
+          throw new UserAlreadyExistsWithEmailException("User with email " + userRequestDto.getEmail() + " already exists");
       }
 
     userMapper.updateEntityFromDto(userRequestDto, newUser);
@@ -101,7 +102,7 @@ public class UserServiceImpl implements UserService {
   @Override
   public void deleteUserById(long id) {
     User user = userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+id));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     logger.info("Deleting user with id ={}",id);
     userRepository.delete(user);
   }
@@ -110,24 +111,28 @@ public class UserServiceImpl implements UserService {
   @Override
   public void updateUserActiveStatusById(long id,boolean status) {
     User user = userRepository.findById(id)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+id));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     logger.info("Updating user active status with id ={}",id);
     user.setActive(status);
   }
 
   @Override
-  public PageResponseDto<UserResponseDto> findAllUsersByCriteria(Map<String, String> searchCriteria, Pageable pageable) {
+  public PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
     Specification<User> spec = Specification.where((Specification<User>) null);
-    if (StringUtils.hasLength(searchCriteria.get("name"))){
-      spec = spec.and(UserSpecification.containsFirstNameCaseInsensitive(searchCriteria.get("name")));
+    if (StringUtils.hasLength(searchCriteria.getName())){
+      spec = spec.and(UserSpecification.containsFirstNameCaseInsensitive(searchCriteria.getName()));
     }
 
-    if (StringUtils.hasLength(searchCriteria.get("surname"))){
-      spec = spec.and(UserSpecification.containsSurnameCaseInsensitive(searchCriteria.get("surname")));
+    if (StringUtils.hasLength(searchCriteria.getSurname())){
+      spec = spec.and(UserSpecification.containsSurnameCaseInsensitive(searchCriteria.getSurname()));
     }
 
-    if (StringUtils.hasLength(searchCriteria.get("email"))){
-      spec = spec.and(UserSpecification.containsEmailCaseInsensitive(searchCriteria.get("email")));
+    if (StringUtils.hasLength(searchCriteria.getEmail())){
+      spec = spec.and(UserSpecification.containsEmailCaseInsensitive(searchCriteria.getEmail()));
+    }
+
+    if (searchCriteria.getActive() != null){
+      spec = spec.and(UserSpecification.hasActiveStatus(searchCriteria.getActive()));
     }
     Page<User> users = userRepository.findAll(spec, pageable);
     return pageResponseMapper.mapToDto(users, userMapper::toResponseDto);
@@ -136,7 +141,7 @@ public class UserServiceImpl implements UserService {
   @Override
   public UserWithCardsDto findUserWithCardsByUserId(long id) {
     User user = userRepository.findByIdWithCards(id)
-            .orElseThrow(() -> new UserNotFoundException("User not found with id = "+id));
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     return userMapper.toWithCardsDto(user);
   }
 

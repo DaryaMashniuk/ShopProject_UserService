@@ -18,4 +18,8 @@ public class UserSpecification {
     return (root, query, criteriaBuilder) -> criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), "%" + email.toLowerCase() + "%");
   }
 
+  public static Specification<User> hasActiveStatus(Boolean active) {
+    return (root, query, cb) -> cb.equal(root.get("active"), active);
+  }
+
 }

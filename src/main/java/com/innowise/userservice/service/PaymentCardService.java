@@ -1,5 +1,6 @@
 package com.innowise.userservice.service;
 import com.innowise.userservice.model.PaymentCard;
+import com.innowise.userservice.model.dto.CardSearchCriteriaDto;
 import com.innowise.userservice.model.dto.PageResponseDto;
 import com.innowise.userservice.model.dto.PaymentCardRequestDto;
 import com.innowise.userservice.model.dto.PaymentCardResponseDto;
@@ -17,6 +18,6 @@ public interface PaymentCardService {
   void deletePaymentCardById(long id);
   void updatePaymentCardStatusById(long id, boolean status);
   List<PaymentCardResponseDto> findUsersPaymentCardsById(long id);
-  PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(Map<String, String> searchCriteria, Pageable pageable);
+  PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable);
 }
 

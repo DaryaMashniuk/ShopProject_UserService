@@ -18,6 +18,10 @@ public class MaxCardAmountLimitException extends RuntimeException {
     super(message, cause, enableSuppression, writableStackTrace);
   }
 
-
+  public MaxCardAmountLimitException(Long userId, int currentCount, int maxLimit) {
+    super(String.format(
+            "User with id %d already has %d cards. Maximum allowed is %d cards.",
+            userId, currentCount, maxLimit));
+  }
 }
 
