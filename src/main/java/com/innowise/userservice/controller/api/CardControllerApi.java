@@ -190,7 +190,7 @@ public interface CardControllerApi {
   @PostMapping(ApiConstants.SEARCH)
   ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getPaymentCardsByCriteria(
           @ParameterObject Pageable pageable,
-          @RequestBody CardSearchCriteriaDto searchCriteria
+          @RequestBody @Valid CardSearchCriteriaDto searchCriteria
   );
 
   @Operation(summary = "Delete payment card", description = "Permanently deletes a payment card from the system")

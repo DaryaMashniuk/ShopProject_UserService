@@ -71,7 +71,7 @@ public class CardController implements CardControllerApi {
   @Override
   public ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getPaymentCardsByCriteria(
           Pageable pageable,
-          @RequestBody CardSearchCriteriaDto searchCriteria
+          @RequestBody @Valid CardSearchCriteriaDto searchCriteria
   ) {
     logger.info("Searching payment cards with criteria: {} and pagination - page: {}, size: {}",
             searchCriteria, pageable.getPageNumber(), pageable.getPageSize());

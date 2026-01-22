@@ -11,22 +11,19 @@ import com.innowise.userservice.model.dto.PageResponseDto;
 import com.innowise.userservice.model.dto.PaymentCardRequestDto;
 import com.innowise.userservice.model.dto.PaymentCardResponseDto;
 import com.innowise.userservice.repository.PaymentCardRepository;
-import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.PaymentCardService;
+import com.innowise.userservice.service.UserCacheService;
+import com.innowise.userservice.service.UserService;
 import com.innowise.userservice.specifications.CardSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tomcat.websocket.server.WsWriteTimeout;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
 import java.util.List;
-import java.util.Map;
 
 @RequiredArgsConstructor
 @Service
@@ -36,14 +33,14 @@ public class PaymentCardServiceImpl implements PaymentCardService {
   private final PaymentCardMapper paymentCardMapper;
   private final PageResponseMapper pageResponseMapper;
   private static final Logger logger = LogManager.getLogger(PaymentCardServiceImpl.class);
-  private final UserRepository userRepository;
+  private final UserService userService;
+  private final UserCacheService userCacheService;
   private static final int MAX_CARD_AMOUNT = 5;
 
   @Override
   public PaymentCardResponseDto createPaymentCard(PaymentCardRequestDto paymentCardRequestDto) {
     long userId = paymentCardRequestDto.getUserId();
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", "id",userId));
+    User user = userService.getUserEntity(userId);
     int amountOfCards = paymentCardRepository.countPaymentCardsByUserId(userId);
     if (amountOfCards >= MAX_CARD_AMOUNT)
     {
@@ -51,6 +48,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     }
     PaymentCard card = paymentCardMapper.toEntity(paymentCardRequestDto);
     card.setUser(user);
+    userCacheService.evictUserCacheWithCards(userId);
     return paymentCardMapper.toResponseDto(paymentCardRepository.save(card));
   }
 
@@ -81,6 +79,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
             .orElseThrow(() -> new ResourceNotFoundException("Card", "id",id));
 
     paymentCardMapper.updateEntityFromDto(paymentCardRequestDto, newCard);
+    userCacheService.evictUserCacheWithCards(newCard.getUser().getId());
     return paymentCardMapper.toResponseDto(newCard);
   }
 
@@ -92,6 +91,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
             .orElseThrow(() -> new ResourceNotFoundException("Card", "id",id));
     logger.info("Delete payment card with id ={}",id);
     paymentCardRepository.delete(card);
+    userCacheService.evictUserCacheWithCards(card.getUser().getId());
   }
 
   @Transactional
@@ -102,6 +102,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
             .orElseThrow(() -> new ResourceNotFoundException("Card", "id",id));
     logger.info("Update payment card with id = {} ",id);
     card.setActive(status);
+    userCacheService.evictUserCacheWithCards(card.getUser().getId());
   }
 
   @Override
@@ -111,17 +112,8 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
   @Override
   public PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable) {
-    Specification<PaymentCard> spec = Specification.where((Specification<PaymentCard>) null);
-
-    if (StringUtils.hasLength(searchCriteria.getNumber())){
-      spec = spec.and(CardSpecification.hasNumber(searchCriteria.getNumber()));
-    }
-
-    if (StringUtils.hasLength(searchCriteria.getHolder())){
-      spec = spec.and(CardSpecification.containsHolderCaseInsensitive(searchCriteria.getHolder()));
-    }
+    Specification<PaymentCard> spec = CardSpecification.build(searchCriteria);
     Page<PaymentCard> cards = paymentCardRepository.findAll(spec, pageable);
     return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
-
 }

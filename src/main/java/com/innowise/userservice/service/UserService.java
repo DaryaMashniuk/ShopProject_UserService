@@ -25,4 +25,5 @@ public interface UserService {
   void updateUserActiveStatusById(long id,boolean status);
   PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto userSearchCriteriaDto, Pageable pageable);
   UserWithCardsDto findUserWithCardsByUserId(long id);
+  User getUserEntity(Long id);
 }

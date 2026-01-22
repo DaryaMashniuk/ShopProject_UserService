@@ -82,7 +82,7 @@ public class UserController implements UserControllerApi {
   @Override
   public ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
           Pageable pageable,
-          @RequestBody UserSearchCriteriaDto searchCriteria
+          @RequestBody @Valid UserSearchCriteriaDto searchCriteria
   ) {
     logger.info("Searching users with criteria: {} and pagination - page: {}, size: {}",
             searchCriteria, pageable.getPageNumber(), pageable.getPageSize());

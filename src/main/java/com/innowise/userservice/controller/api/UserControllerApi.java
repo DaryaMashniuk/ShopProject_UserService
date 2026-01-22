@@ -214,7 +214,7 @@ public interface UserControllerApi {
   @PostMapping(ApiConstants.SEARCH)
   ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
           @ParameterObject Pageable pageable,
-          @RequestBody UserSearchCriteriaDto searchCriteria
+          @RequestBody @Valid UserSearchCriteriaDto searchCriteria
   );
 
   @Operation(summary = "Delete user", description = "Permanently deletes a user from the system")

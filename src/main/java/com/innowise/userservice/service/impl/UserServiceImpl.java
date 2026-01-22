@@ -1,5 +1,6 @@
 package com.innowise.userservice.service.impl;
 
+import com.innowise.userservice.constants.CacheNames;
 import com.innowise.userservice.exceptions.ResourceNotFoundException;
 import com.innowise.userservice.exceptions.UserAlreadyExistsWithEmailException;
 import com.innowise.userservice.mapper.UserMapper;
@@ -15,6 +16,10 @@ import com.innowise.userservice.service.UserService;
 import com.innowise.userservice.specifications.UserSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,13 +39,15 @@ public class UserServiceImpl implements UserService {
   private final UserMapper userMapper;
   private final PageResponseMapper pageResponseMapper;
 
+
   @Override
   public UserResponseDto createUser(UserRequestDto userRequestDto) {
     User user = userMapper.toEntity(userRequestDto);
       if (existsByEmail(user.getEmail())) {
         throw new UserAlreadyExistsWithEmailException("User with email " + user.getEmail() + " already exists");
       }
-      return userMapper.toResponseDto(userRepository.save(user));
+      User savedUser = userRepository.save(user);
+      return userMapper.toResponseDto(savedUser);
   }
 
   @Override
@@ -48,6 +55,11 @@ public class UserServiceImpl implements UserService {
     return userRepository.existsByEmail(email);
   }
 
+  @Cacheable(
+          value = CacheNames.USERS,
+          key = "#id",
+          unless = "#result == null"
+  )
   @Override
   public UserResponseDto findUserById(long id) {
 
@@ -81,6 +93,8 @@ public class UserServiceImpl implements UserService {
     return userMapper.toResponseDtoList(userRepository.findAllActiveUsers());
   }
 
+  @CachePut(value = CacheNames.USERS, key = "#id")
+  @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id")
   @Transactional
   @Override
   public UserResponseDto updateUserById(UserRequestDto userRequestDto, long id) {
@@ -98,6 +112,10 @@ public class UserServiceImpl implements UserService {
     return userMapper.toResponseDto(newUser);
   }
 
+  @Caching(evict = {
+          @CacheEvict(value = CacheNames.USERS, key = "#id"),
+          @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id"),
+  })
   @Transactional
   @Override
   public void deleteUserById(long id) {
@@ -107,6 +125,10 @@ public class UserServiceImpl implements UserService {
     userRepository.delete(user);
   }
 
+  @Caching(evict = {
+          @CacheEvict(value = CacheNames.USERS, key = "#id"),
+          @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id"),
+})
   @Transactional
   @Override
   public void updateUserActiveStatusById(long id,boolean status) {
@@ -118,26 +140,16 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
-    Specification<User> spec = Specification.where((Specification<User>) null);
-    if (StringUtils.hasLength(searchCriteria.getName())){
-      spec = spec.and(UserSpecification.containsFirstNameCaseInsensitive(searchCriteria.getName()));
-    }
-
-    if (StringUtils.hasLength(searchCriteria.getSurname())){
-      spec = spec.and(UserSpecification.containsSurnameCaseInsensitive(searchCriteria.getSurname()));
-    }
-
-    if (StringUtils.hasLength(searchCriteria.getEmail())){
-      spec = spec.and(UserSpecification.containsEmailCaseInsensitive(searchCriteria.getEmail()));
-    }
-
-    if (searchCriteria.getActive() != null){
-      spec = spec.and(UserSpecification.hasActiveStatus(searchCriteria.getActive()));
-    }
+    Specification<User> spec = UserSpecification.build(searchCriteria);
     Page<User> users = userRepository.findAll(spec, pageable);
     return pageResponseMapper.mapToDto(users, userMapper::toResponseDto);
   }
 
+  @Cacheable(
+          value = CacheNames.USERS_WITH_CARDS,
+          key = "#id",
+          unless = "#result == null"
+  )
   @Override
   public UserWithCardsDto findUserWithCardsByUserId(long id) {
     User user = userRepository.findByIdWithCards(id)
@@ -145,5 +157,11 @@ public class UserServiceImpl implements UserService {
     return userMapper.toWithCardsDto(user);
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public User getUserEntity(Long id) {
+    return userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+  }
 
 }
