@@ -39,7 +39,7 @@ public class RedisConfig {
                     .fromSerializer(serializer));
     return RedisCacheManager
             .builder(connectionFactory)
-            .cacheDefaults(config)
+             .cacheDefaults(config)
             .build();
   }
 }

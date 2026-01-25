@@ -1,7 +1,7 @@
 package com.innowise.userservice.controller;
 
-import com.innowise.userservice.constants.ApiConstants;
 import com.innowise.userservice.controller.api.UserControllerApi;
+import com.innowise.userservice.model.dto.ChangeStatusRequestDto;
 import com.innowise.userservice.model.dto.PageResponseDto;
 import com.innowise.userservice.model.dto.UserRequestDto;
 import com.innowise.userservice.model.dto.UserResponseDto;
@@ -18,17 +18,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @AllArgsConstructor
 @RestController
-@RequestMapping(ApiConstants.USERS)
+@RequestMapping("/api/v1/users")
 public class UserController implements UserControllerApi {
 
   private static final Logger logger = LogManager.getLogger(UserController.class);
   private UserService userService;
 
   @Override
+  @PostMapping
   public ResponseEntity<UserResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
     logger.info("Creating new user with email: {}", userRequestDto.getEmail());
     UserResponseDto createdUser = userService.createUser(userRequestDto);
@@ -36,6 +36,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @GetMapping
   public ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(Pageable pageable) {
     logger.info("Retrieving all users with pagination - page: {}, size: {}",
             pageable.getPageNumber(), pageable.getPageSize());
@@ -44,6 +45,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable("id") Long id) {
     logger.info("Retrieving user by ID: {}", id);
     UserResponseDto user = userService.findUserById(id);
@@ -51,6 +53,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PutMapping("/{id}")
   public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Long id,
                                                     @RequestBody @Valid UserRequestDto userRequestDto) {
     logger.info("Updating user with ID: {}", id);
@@ -59,20 +62,14 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
-  public ResponseEntity<Void> updateUserActivate(@PathVariable("id") Long id) {
-    logger.info("Activating user with ID: {}", id);
-    userService.updateUserActiveStatusById(id, true);
+  @PatchMapping("/{id}")
+  public ResponseEntity<Void> updateUserStatus(@PathVariable("id") Long id, @RequestBody @Valid ChangeStatusRequestDto statusDto) {
+    userService.updateUserActiveStatusById(id, statusDto.getActive());
     return ResponseEntity.ok().build();
   }
 
   @Override
-  public ResponseEntity<Void> updateUserDeactivate(@PathVariable("id") Long id) {
-    logger.info("Deactivating user with ID: {}", id);
-    userService.updateUserActiveStatusById(id, false);
-    return ResponseEntity.ok().build();
-  }
-
-  @Override
+  @GetMapping("/{id}/cards")
   public ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id) {
     logger.info("Retrieving user with cards by ID: {}", id);
     UserWithCardsDto user = userService.findUserWithCardsByUserId(id);
@@ -80,6 +77,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PostMapping("/search")
   public ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
           Pageable pageable,
           @RequestBody @Valid UserSearchCriteriaDto searchCriteria
@@ -91,6 +89,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
     logger.info("Deleting user with ID: {}", id);
     userService.deleteUserById(id);
@@ -98,6 +97,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @GetMapping("/active")
   public ResponseEntity<List<UserResponseDto>> getActiveUsers() {
     logger.info("Retrieving all active users");
     List<UserResponseDto> activeUsers = userService.findAllActiveUsers();

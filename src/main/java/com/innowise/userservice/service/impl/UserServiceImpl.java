@@ -1,6 +1,5 @@
 package com.innowise.userservice.service.impl;
 
-import com.innowise.userservice.constants.CacheNames;
 import com.innowise.userservice.exceptions.ResourceNotFoundException;
 import com.innowise.userservice.exceptions.UserAlreadyExistsWithEmailException;
 import com.innowise.userservice.mapper.UserMapper;
@@ -26,12 +25,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserServiceImpl implements UserService {
 
   private final UserRepository userRepository;
@@ -56,10 +54,11 @@ public class UserServiceImpl implements UserService {
   }
 
   @Cacheable(
-          value = CacheNames.USERS,
+          value = "users",
           key = "#id",
           unless = "#result == null"
   )
+  @Transactional(readOnly = true)
   @Override
   public UserResponseDto findUserById(long id) {
 
@@ -69,6 +68,7 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
   }
 
+  @Transactional(readOnly = true)
   @Override
   public UserResponseDto findUserByEmail(String email) {
     return userRepository
@@ -77,24 +77,27 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PageResponseDto<UserResponseDto> findAllUsers(Pageable pageable) {
     Page<User> users = userRepository.findAll(pageable);
     return pageResponseMapper.mapToDto(users, userMapper::toResponseDto);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<UserResponseDto> findAllUsers() {
     return userMapper.toResponseDtoList(userRepository.findAll());
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<UserResponseDto> findAllActiveUsers() {
     return userMapper.toResponseDtoList(userRepository.findAllActiveUsers());
   }
 
-  @CachePut(value = CacheNames.USERS, key = "#id")
-  @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id")
+  @CachePut(value = "users", key = "#id")
+  @CacheEvict(value = "users-with-cards", key = "#id")
   @Transactional
   @Override
   public UserResponseDto updateUserById(UserRequestDto userRequestDto, long id) {
@@ -113,8 +116,8 @@ public class UserServiceImpl implements UserService {
   }
 
   @Caching(evict = {
-          @CacheEvict(value = CacheNames.USERS, key = "#id"),
-          @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id"),
+          @CacheEvict(value = "users", key = "#id"),
+          @CacheEvict(value = "users-with-cards", key = "#id"),
   })
   @Transactional
   @Override
@@ -126,8 +129,8 @@ public class UserServiceImpl implements UserService {
   }
 
   @Caching(evict = {
-          @CacheEvict(value = CacheNames.USERS, key = "#id"),
-          @CacheEvict(value = CacheNames.USERS_WITH_CARDS, key = "#id"),
+          @CacheEvict(value = "users", key = "#id"),
+          @CacheEvict(value = "users-with-cards", key = "#id"),
 })
   @Transactional
   @Override
@@ -138,6 +141,7 @@ public class UserServiceImpl implements UserService {
     user.setActive(status);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
     Specification<User> spec = UserSpecification.build(searchCriteria);
@@ -146,10 +150,11 @@ public class UserServiceImpl implements UserService {
   }
 
   @Cacheable(
-          value = CacheNames.USERS_WITH_CARDS,
+          value = "users-with-cards",
           key = "#id",
           unless = "#result == null"
   )
+  @Transactional(readOnly = true)
   @Override
   public UserWithCardsDto findUserWithCardsByUserId(long id) {
     User user = userRepository.findByIdWithCards(id)

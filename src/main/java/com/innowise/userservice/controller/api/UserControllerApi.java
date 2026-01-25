@@ -1,9 +1,7 @@
 package com.innowise.userservice.controller.api;
 
-import com.innowise.userservice.constants.ApiConstants;
 import com.innowise.userservice.model.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,10 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "User Management", description = "API for managing system users")
-@RequestMapping(ApiConstants.USERS)
+@RequestMapping("/api/v1/users")
 public interface UserControllerApi {
 
   @Operation(summary = "Create new user", description = "Creates a new user in the system")
@@ -100,7 +97,7 @@ public interface UserControllerApi {
                   )
           )
   })
-  @GetMapping(ApiConstants.BY_ID)
+  @GetMapping("/{id}")
   ResponseEntity<UserResponseDto> getUserById(@PathVariable("id") Long id);
 
   @Operation(summary = "Update user", description = "Updates existing user information")
@@ -130,15 +127,15 @@ public interface UserControllerApi {
                   )
           )
   })
-  @PutMapping(ApiConstants.BY_ID)
+  @PutMapping("/{id}")
   ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Long id,
                                                     @RequestBody @Valid UserRequestDto userRequestDto);
 
-  @Operation(summary = "Activate user", description = "Activates a deactivated user account")
+  @Operation(summary = "Deactivate/Activate user", description = "Changes status of the user account")
   @ApiResponses(value = {
           @ApiResponse(
                   responseCode = "200",
-                  description = "User activated successfully"
+                  description = "User status changed successfully"
           ),
           @ApiResponse(
                   responseCode = "404",
@@ -149,26 +146,10 @@ public interface UserControllerApi {
                   )
           )
   })
-  @PatchMapping(ApiConstants.ACTIVATE)
-  ResponseEntity<Void> updateUserActivate(@PathVariable("id") Long id);
-
-  @Operation(summary = "Deactivate user", description = "Deactivates an active user account")
-  @ApiResponses(value = {
-          @ApiResponse(
-                  responseCode = "200",
-                  description = "User deactivated successfully"
-          ),
-          @ApiResponse(
-                  responseCode = "404",
-                  description = "User not found",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = ErrorResponse.class)
-                  )
-          )
-  })
-  @PatchMapping(ApiConstants.DEACTIVATE)
-  ResponseEntity<Void> updateUserDeactivate(@PathVariable("id") Long id);
+  @PatchMapping("/{id}")
+  ResponseEntity<Void> updateUserStatus(
+          @PathVariable("id") Long id,
+          @RequestBody @Valid ChangeStatusRequestDto statusDto);
 
   @Operation(summary = "Get user with cards", description = "Retrieves user information along with their payment cards")
   @ApiResponses(value = {
@@ -189,7 +170,7 @@ public interface UserControllerApi {
                   )
           )
   })
-  @GetMapping(ApiConstants.BY_ID_WITH_CARDS)
+  @GetMapping("/{id}/cards")
   ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id);
 
   @Operation(summary = "Search users by criteria", description = "Searches users based on provided criteria with pagination")
@@ -211,7 +192,7 @@ public interface UserControllerApi {
                   )
           )
   })
-  @PostMapping(ApiConstants.SEARCH)
+  @PostMapping("/search")
   ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
           @ParameterObject Pageable pageable,
           @RequestBody @Valid UserSearchCriteriaDto searchCriteria
@@ -232,7 +213,7 @@ public interface UserControllerApi {
                   )
           )
   })
-  @DeleteMapping(ApiConstants.BY_ID)
+  @DeleteMapping("/{id}")
   ResponseEntity<Void> deleteUser(@PathVariable("id") Long id);
 
   @Operation(summary = "Get active users", description = "Retrieves all active users in the system")
@@ -254,6 +235,6 @@ public interface UserControllerApi {
                   )
           )
   })
-  @GetMapping(ApiConstants.ACTIVE)
+  @GetMapping("/active")
   ResponseEntity<List<UserResponseDto>> getActiveUsers();
 }

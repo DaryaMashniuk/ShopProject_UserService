@@ -7,6 +7,7 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,9 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_users_name_surname", columnList = "name, surname")
+})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,10 +37,10 @@ public class User extends Auditable {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 100)
   private String name;
 
-  @Column(nullable = false)
+  @Column(nullable = false, length = 100)
   private String surname;
 
   @Column(nullable = false, unique = true)
@@ -47,7 +50,7 @@ public class User extends Auditable {
   private LocalDate birthDate;
 
   @Column(nullable = false)
-  private boolean active;
+  private boolean active = true;
 
   @OneToMany(mappedBy = "user",
               cascade = CascadeType.ALL,

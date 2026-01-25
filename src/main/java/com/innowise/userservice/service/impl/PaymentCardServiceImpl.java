@@ -27,6 +27,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class PaymentCardServiceImpl implements PaymentCardService {
 
   private final PaymentCardRepository paymentCardRepository;
@@ -48,10 +49,13 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     }
     PaymentCard card = paymentCardMapper.toEntity(paymentCardRequestDto);
     card.setUser(user);
+    PaymentCard saved = paymentCardRepository.save(card);
     userCacheService.evictUserCacheWithCards(userId);
-    return paymentCardMapper.toResponseDto(paymentCardRepository.save(card));
+    return paymentCardMapper.toResponseDto(saved);
+
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PaymentCardResponseDto findPaymentCardById(long id) {
     return paymentCardRepository
@@ -60,11 +64,13 @@ public class PaymentCardServiceImpl implements PaymentCardService {
            .orElseThrow(() -> new ResourceNotFoundException("Card", "id",id));
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<PaymentCardResponseDto> findAllPaymentCards() {
     return paymentCardMapper.toResponseDtoList(paymentCardRepository.findAll());
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(Pageable pageable) {
     Page<PaymentCard> cards = paymentCardRepository.findAll(pageable);
@@ -105,6 +111,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     userCacheService.evictUserCacheWithCards(card.getUser().getId());
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<PaymentCardResponseDto> findUsersPaymentCardsById(long id) {
     return paymentCardMapper.toResponseDtoList(paymentCardRepository.findPaymentCardsByUserId(id));

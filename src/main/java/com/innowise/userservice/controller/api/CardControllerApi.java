@@ -1,9 +1,7 @@
 package com.innowise.userservice.controller.api;
 
-import com.innowise.userservice.constants.ApiConstants;
 import com.innowise.userservice.model.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,10 +20,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.Map;
-
 @Tag(name = "Payment Card Management", description = "API for managing user payment cards")
-@RequestMapping(ApiConstants.CARDS)
+@RequestMapping("/api/v1/cards")
 public interface CardControllerApi {
 
   @Operation(summary = "Create new payment card", description = "Links a new payment card to a user")
@@ -99,7 +95,7 @@ public interface CardControllerApi {
                   )
           )
   })
-  @GetMapping(ApiConstants.BY_ID)
+  @GetMapping("/{id}")
   ResponseEntity<PaymentCardResponseDto> getCardById(@PathVariable Long id);
 
   @Operation(summary = "Update payment card", description = "Updates existing payment card information")
@@ -129,14 +125,14 @@ public interface CardControllerApi {
                   )
           )
   })
-  @PutMapping(ApiConstants.BY_ID)
+  @PutMapping("/{id}")
   ResponseEntity<PaymentCardResponseDto> updateCard(@PathVariable Long id, @RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto);
 
-  @Operation(summary = "Activate payment card", description = "Activates a deactivated payment card")
+  @Operation(summary = "Deactivate/Activate payment card", description = "Changes status of the payment card")
   @ApiResponses(value = {
           @ApiResponse(
                   responseCode = "200",
-                  description = "Payment card activated successfully"
+                  description = "Payment card status changed successfully"
           ),
           @ApiResponse(
                   responseCode = "404",
@@ -147,26 +143,11 @@ public interface CardControllerApi {
                   )
           )
   })
-  @PatchMapping(ApiConstants.ACTIVATE)
-  ResponseEntity<Void> updateCardActivate(@PathVariable("id") Long id);
+  @PatchMapping("/{id}")
+  ResponseEntity<Void> updateCardStatus(
+          @PathVariable("id") Long id,
+          @RequestBody @Valid ChangeStatusRequestDto statusDto);
 
-  @Operation(summary = "Deactivate payment card", description = "Deactivates an active payment card")
-  @ApiResponses(value = {
-          @ApiResponse(
-                  responseCode = "200",
-                  description = "Payment card deactivated successfully"
-          ),
-          @ApiResponse(
-                  responseCode = "404",
-                  description = "Payment card not found",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = ErrorResponse.class)
-                  )
-          )
-  })
-  @PatchMapping(ApiConstants.DEACTIVATE)
-  ResponseEntity<Void> updateCardDeactivate(@PathVariable("id") Long id);
 
   @Operation(summary = "Search cards by criteria", description = "Searches payment cards based on provided criteria with pagination")
   @ApiResponses(value = {
@@ -187,7 +168,7 @@ public interface CardControllerApi {
                   )
           )
   })
-  @PostMapping(ApiConstants.SEARCH)
+  @PostMapping("/search")
   ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getPaymentCardsByCriteria(
           @ParameterObject Pageable pageable,
           @RequestBody @Valid CardSearchCriteriaDto searchCriteria
@@ -208,6 +189,6 @@ public interface CardControllerApi {
                   )
           )
   })
-  @DeleteMapping(ApiConstants.BY_ID)
+  @DeleteMapping("/{id}")
   ResponseEntity<Void> deleteCardById(@PathVariable Long id);
 }
