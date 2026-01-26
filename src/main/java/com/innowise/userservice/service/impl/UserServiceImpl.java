@@ -98,7 +98,6 @@ public class UserServiceImpl implements UserService {
 
   @CachePut(value = "users", key = "#id")
   @CacheEvict(value = "users-with-cards", key = "#id")
-  @Transactional
   @Override
   public UserResponseDto updateUserById(UserRequestDto userRequestDto, long id) {
     User newUser = userRepository
@@ -119,7 +118,6 @@ public class UserServiceImpl implements UserService {
           @CacheEvict(value = "users", key = "#id"),
           @CacheEvict(value = "users-with-cards", key = "#id"),
   })
-  @Transactional
   @Override
   public void deleteUserById(long id) {
     User user = userRepository.findById(id)
@@ -132,7 +130,6 @@ public class UserServiceImpl implements UserService {
           @CacheEvict(value = "users", key = "#id"),
           @CacheEvict(value = "users-with-cards", key = "#id"),
 })
-  @Transactional
   @Override
   public void updateUserActiveStatusById(long id,boolean status) {
     User user = userRepository.findById(id)

@@ -77,7 +77,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
 
-  @Transactional
   @Override
   public PaymentCardResponseDto updatePaymentCardById(PaymentCardRequestDto paymentCardRequestDto, long id) {
     PaymentCard newCard = paymentCardRepository
@@ -89,7 +88,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     return paymentCardMapper.toResponseDto(newCard);
   }
 
-  @Transactional
   @Override
   public void deletePaymentCardById(long id) {
     PaymentCard card = paymentCardRepository
@@ -100,7 +98,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     userCacheService.evictUserCacheWithCards(card.getUser().getId());
   }
 
-  @Transactional
   @Override
   public void updatePaymentCardStatusById(long id, boolean status) {
     PaymentCard card = paymentCardRepository
@@ -117,6 +114,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     return paymentCardMapper.toResponseDtoList(paymentCardRepository.findPaymentCardsByUserId(id));
   }
 
+  @Transactional(readOnly = true)
   @Override
   public PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable) {
     Specification<PaymentCard> spec = CardSpecification.build(searchCriteria);
