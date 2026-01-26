@@ -2,8 +2,10 @@ package com.innowise.userservice.specifications;
 
 import com.innowise.userservice.model.PaymentCard;
 import com.innowise.userservice.model.dto.CardSearchCriteriaDto;
+import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 
+@UtilityClass
 public class CardSpecification {
 
   public static Specification<PaymentCard> build(CardSearchCriteriaDto searchCriteria) {

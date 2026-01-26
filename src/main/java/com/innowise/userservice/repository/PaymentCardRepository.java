@@ -1,7 +1,6 @@
 package com.innowise.userservice.repository;
 
 import com.innowise.userservice.model.PaymentCard;
-import com.innowise.userservice.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -22,5 +21,4 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCard, Long>,
   @Query("SELECT COUNT(pc) FROM PaymentCard pc WHERE pc.user.id = :userId")
   int countPaymentCardsByUserId(@Param("userId") Long userId);
 
-  Long user(User user);
 }

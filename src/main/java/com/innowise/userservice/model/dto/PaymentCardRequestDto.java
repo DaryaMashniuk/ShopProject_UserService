@@ -54,6 +54,7 @@ public class PaymentCardRequestDto {
           example = "true",
           defaultValue = "true"
   )
+  @Builder.Default
   private boolean active = true;
 
   @Schema(

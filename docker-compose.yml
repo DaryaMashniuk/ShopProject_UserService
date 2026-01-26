@@ -8,9 +8,9 @@ services:
     container_name: user-service-db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME_DOCKER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD_DOCKER}
-      POSTGRES_DB: ${DB_NAME_DOCKER}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -20,12 +20,13 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     environment:
-      SPRING_DATASOURCE_URL: 'jdbc:postgresql://user-service-db:5432/user_service_db'
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME_DOCKER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD_DOCKER}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATA_REDIS_HOST: user-service-redis
-      SPRING_DATA_REDIS_PORT: 6379
+
     ports:
       - "8080:8080"
     depends_on:

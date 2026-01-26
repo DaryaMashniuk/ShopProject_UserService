@@ -62,11 +62,10 @@ class UserServiceImplTest {
   private UserRequestDto userRequestDto;
   private Pageable pageable;
   private Page<User> userPage;
-  private LocalDateTime testDateTime;
 
   @BeforeEach
   void setUp() {
-    testDateTime = LocalDateTime.of(2026, 1, 15, 10, 30);
+    LocalDateTime testDateTime = LocalDateTime.of(2026, 1, 15, 10, 30);
 
     testUser = User.builder()
             .id(1L)
@@ -193,11 +192,11 @@ class UserServiceImplTest {
       when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
       when(userMapper.toResponseDto(testUser)).thenReturn(userResponseDto);
 
-      UserResponseDto userResponseDto = userService.findUserById(userId);
+      UserResponseDto userResponse = userService.findUserById(userId);
 
-      assertNotNull(userResponseDto);
-      assertEquals(userResponseDto.getId(), userId);
-      assertEquals(userResponseDto.getEmail(), testUser.getEmail());
+      assertNotNull(userResponse);
+      assertEquals(userId, userResponse.getId());
+      assertEquals(userResponse.getEmail(), testUser.getEmail());
       verify(userRepository).findById(userId);
       verify(userMapper).toResponseDto(testUser);
     }
@@ -209,11 +208,11 @@ class UserServiceImplTest {
       when(userRepository.findByEmail(email)).thenReturn(Optional.of(testUser));
       when(userMapper.toResponseDto(testUser)).thenReturn(userResponseDto);
 
-      UserResponseDto userResponseDto = userService.findUserByEmail(email);
+      UserResponseDto userResponse = userService.findUserByEmail(email);
 
-      assertNotNull(userResponseDto);
-      assertEquals(userResponseDto.getId(), testUser.getId());
-      assertEquals(userResponseDto.getEmail(), testUser.getEmail());
+      assertNotNull(userResponse);
+      assertEquals(userResponse.getId(), testUser.getId());
+      assertEquals(userResponse.getEmail(), testUser.getEmail());
       verify(userRepository).findByEmail(email);
       verify(userMapper).toResponseDto(testUser);
     }

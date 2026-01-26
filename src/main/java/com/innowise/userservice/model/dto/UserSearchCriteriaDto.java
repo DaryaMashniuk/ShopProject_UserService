@@ -1,7 +1,6 @@
 package com.innowise.userservice.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +30,6 @@ public class UserSearchCriteriaDto implements Serializable {
 
   @Schema(description = "User email (partial match, case-insensitive)",
           example = "gmail.com")
-  @Email(message = "Search email must be a valid format")
   private String email;
 
   @Schema(description = "User active status",

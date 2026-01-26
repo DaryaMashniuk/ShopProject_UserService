@@ -3,15 +3,12 @@ package com.innowise.userservice.controller.factory;
 import com.innowise.userservice.model.User;
 import com.innowise.userservice.repository.UserRepository;
 import org.springframework.stereotype.Component;
-
 import java.time.LocalDate;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class UserDataFactory {
 
   private final UserRepository userRepository;
-  private final AtomicLong userCounter = new AtomicLong();
 
   public UserDataFactory(UserRepository userRepository) {
     this.userRepository = userRepository;

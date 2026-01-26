@@ -32,14 +32,15 @@ public class GlobalExceptionHandler {
   ) {
     Map<String, Object> errors = new HashMap<>();
 
-    exception.getBindingResult().getAllErrors().forEach((error) -> {
+    exception.getBindingResult().getAllErrors().forEach(error -> {
       String fieldName = ((FieldError) error).getField();
       String errorMessage = error.getDefaultMessage();
       errors.put(fieldName, errorMessage);
     });
 
     String errorMessage = "Validation failed for " + errors.size() + " field(s)";
-    logger.warn("Validation failed for request {}: {}", request.getDescription(false), errors);
+    String requestDescription = request.getDescription(false);
+    logger.warn("Validation failed for request {}: {}", requestDescription, errors);
     ErrorResponse errorResponse = new ErrorResponse(
             Instant.now(),
             HttpStatus.BAD_REQUEST.value(),

@@ -19,9 +19,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -367,7 +365,6 @@ class CardControllerTest extends BaseIntegrationTest {
               .build());
 
       PaymentCard card = paymentCardDataFactory.createRandomCardForUser(user);
-      String maskedNumber = card.getNumber();
 
       CardSearchCriteriaDto searchCriteria = CardSearchCriteriaDto.builder()
               .holder(card.getHolder().substring(0, 4))

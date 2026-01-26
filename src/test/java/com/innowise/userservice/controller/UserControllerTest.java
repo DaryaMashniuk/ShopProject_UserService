@@ -18,9 +18,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -100,7 +98,7 @@ class UserControllerTest extends BaseIntegrationTest {
               .active(true)
               .build();
 
-      String response = mockMvc.perform(post("/api/v1/users")
+      mockMvc.perform(post("/api/v1/users")
                       .contentType(MediaType.APPLICATION_JSON)
                       .content(objectMapper.writeValueAsString(newUserRequest)))
               .andExpect(status().isCreated())
@@ -201,7 +199,7 @@ class UserControllerTest extends BaseIntegrationTest {
     void shouldGetUserWithCardsSuccessfully() throws Exception {
       initTestData();
 
-      String response = mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId()))
+      mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId()))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.id").value(testUser.getId()))
               .andExpect(jsonPath("$.name").value(testUser.getName()))

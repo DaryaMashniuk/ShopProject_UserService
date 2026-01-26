@@ -1,6 +1,5 @@
 package com.innowise.userservice.repository;
 
-import com.innowise.userservice.model.PaymentCard;
 import com.innowise.userservice.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

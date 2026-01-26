@@ -1,10 +1,11 @@
 package com.innowise.userservice.specifications;
 
-import com.innowise.userservice.model.PaymentCard;
 import com.innowise.userservice.model.User;
 import com.innowise.userservice.model.dto.UserSearchCriteriaDto;
+import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 
+@UtilityClass
 public class UserSpecification {
 
   public static Specification<User> build (UserSearchCriteriaDto userSearchCriteriaDto) {
