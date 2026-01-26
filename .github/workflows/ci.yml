@@ -46,7 +46,6 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.exclusions=**/dto/**,**/model/**,**/config/**,**/exception/**,**/*Application.java
 
-
   cd:
     name: CD - Build & Push Docker Image
     needs: ci
