@@ -49,7 +49,7 @@ jobs:
     name: CD - Build & Push Docker Image
     needs: ci
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout source code
