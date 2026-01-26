@@ -35,19 +35,12 @@ jobs:
       - name: Make Maven Wrapper executable
         run: chmod +x ./mvnw
 
-      - name: SonarQube analysis
-        if: github.event_name == 'push'
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          ./mvnw clean verify sonar:sonar \
-            -Dsonar.login=${SONAR_TOKEN} \
-            -Dsonar.projectKey=DaryaMashniuk_ShopProject_UserService \
-            -Dsonar.organization=daryamashniuk \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.exclusions=**/dto/**,**/model/**,**/config/**,**/exception/**,**/*Application.java
-  
-  
+      - name: SonarCloud Code Analysis
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          organization: daryamashniuk
+          projectKey: DaryaMashniuk_ShopProject_UserService
+          token: ${{ secrets.SONAR_TOKEN }}
 
   cd:
     name: CD - Build & Push Docker Image
