@@ -32,6 +32,9 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
         run: mvn clean verify
 
+      - name: Make Maven Wrapper executable
+        run: chmod +x ./mvnw
+
       - name: SonarQube analysis
         if: github.event_name == 'push'
         env:
