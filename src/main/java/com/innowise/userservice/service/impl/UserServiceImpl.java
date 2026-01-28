@@ -141,8 +141,19 @@ public class UserServiceImpl implements UserService {
   @Transactional(readOnly = true)
   @Override
   public PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
-    Specification<User> spec = UserSpecification.build(searchCriteria);
-    Page<User> users = userRepository.findAll(spec, pageable);
+    boolean noFilters =
+            searchCriteria.getName() == null &&
+                    searchCriteria.getSurname() == null &&
+                    searchCriteria.getEmail() == null &&
+                    searchCriteria.getActive() == null;
+    Page<User> users;
+    if (noFilters) {
+      users = userRepository.findAll(pageable);
+    } else {
+      Specification<User> spec = UserSpecification.build(searchCriteria);
+      users = userRepository.findAll(spec, pageable);
+    }
+
     return pageResponseMapper.mapToDto(users, userMapper::toResponseDto);
   }
 

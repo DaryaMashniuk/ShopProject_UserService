@@ -76,7 +76,7 @@ User Service is a comprehensive backend application built to manage user profile
 ### Configuration
 
 The application supports multiple profiles:
-- **local**: For local development (default)
+- **local**: For local development
 - **docker**: For containerized deployment
 - **test**: For running tests
 
@@ -187,7 +187,7 @@ Client → Controller (DTO) → Service → Repository (Entity) → Database
 ./mvnw test -Dtest="*IntegrationTest"
 
 # Unit tests only
-./mvnw test -Dtest="*ServiceTest"
+./mvnw test -Dtest="*ServiceImplTest"
 ```
 
 ### Test Coverage

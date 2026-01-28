@@ -16,7 +16,7 @@ public class CardSpecification {
 
   private static Specification<PaymentCard> hasNumber(String number) {
     return (root, query, criteriaBuilder) -> (number == null || number.isBlank())
-            ? null : criteriaBuilder.equal(root.get("number"), number);
+            ? null : criteriaBuilder.like(root.get("number"), "%" +number+ "%");
   }
 
   private static Specification<PaymentCard> containsHolderCaseInsensitive(String holder) {

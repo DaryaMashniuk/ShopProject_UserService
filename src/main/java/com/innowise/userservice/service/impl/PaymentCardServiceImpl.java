@@ -117,8 +117,17 @@ public class PaymentCardServiceImpl implements PaymentCardService {
   @Transactional(readOnly = true)
   @Override
   public PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable) {
-    Specification<PaymentCard> spec = CardSpecification.build(searchCriteria);
-    Page<PaymentCard> cards = paymentCardRepository.findAll(spec, pageable);
+    boolean noFilters =
+            searchCriteria.getActive() == null &&
+                    searchCriteria.getHolder() == null &&
+                    searchCriteria.getNumber() == null;
+    Page<PaymentCard> cards;
+    if (noFilters){
+      cards = paymentCardRepository.findAll(pageable);
+    } else {
+      Specification<PaymentCard> spec = CardSpecification.build(searchCriteria);
+      cards = paymentCardRepository.findAll(spec, pageable);
+    }
     return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
 }

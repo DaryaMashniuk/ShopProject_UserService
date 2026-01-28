@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Transactional
-class CardControllerTest extends BaseIntegrationTest {
+class CardControllerIntegrationTest extends BaseIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;
