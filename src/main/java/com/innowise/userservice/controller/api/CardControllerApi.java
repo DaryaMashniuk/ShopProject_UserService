@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Payment Card Management", description = "API for managing user payment cards")
 @RequestMapping("/api/v1/cards")
@@ -54,11 +55,11 @@ public interface CardControllerApi {
   @PostMapping
   ResponseEntity<PaymentCardResponseDto> createCard(@RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto);
 
-  @Operation(summary = "Get all payment cards", description = "Retrieves paginated list of all payment cards")
+  @Operation(summary = "Search cards by criteria", description = "Searches payment cards based on provided criteria with pagination")
   @ApiResponses(value = {
           @ApiResponse(
                   responseCode = "200",
-                  description = "Payment cards retrieved successfully",
+                  description = "Search completed successfully",
                   content = @Content(
                           mediaType = "application/json",
                           schema = @Schema(implementation = PageResponseDto.class)
@@ -74,7 +75,11 @@ public interface CardControllerApi {
           )
   })
   @GetMapping
-  ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getAllPaymentCards(@ParameterObject Pageable pageable);
+  ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getAllPaymentCards(
+          @RequestParam(required = false) String number,
+          @RequestParam(required = false) String holder,
+          @RequestParam(required = false) Boolean active,
+          @ParameterObject Pageable pageable);
 
   @Operation(summary = "Get card by ID", description = "Retrieves payment card information by card ID")
   @ApiResponses(value = {
@@ -149,30 +154,7 @@ public interface CardControllerApi {
           @RequestBody @Valid ChangeStatusRequestDto statusDto);
 
 
-  @Operation(summary = "Search cards by criteria", description = "Searches payment cards based on provided criteria with pagination")
-  @ApiResponses(value = {
-          @ApiResponse(
-                  responseCode = "200",
-                  description = "Search completed successfully",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = PageResponseDto.class)
-                  )
-          ),
-          @ApiResponse(
-                  responseCode = "400",
-                  description = "Invalid search criteria",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = ErrorResponse.class)
-                  )
-          )
-  })
-  @PostMapping("/search")
-  ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getPaymentCardsByCriteria(
-          @ParameterObject Pageable pageable,
-          @RequestBody @Valid CardSearchCriteriaDto searchCriteria
-  );
+
 
   @Operation(summary = "Delete payment card", description = "Permanently deletes a payment card from the system")
   @ApiResponses(value = {

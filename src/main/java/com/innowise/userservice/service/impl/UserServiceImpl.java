@@ -79,21 +79,8 @@ public class UserServiceImpl implements UserService {
 
   @Transactional(readOnly = true)
   @Override
-  public PageResponseDto<UserResponseDto> findAllUsers(Pageable pageable) {
-    Page<User> users = userRepository.findAll(pageable);
-    return pageResponseMapper.mapToDto(users, userMapper::toResponseDto);
-  }
-
-  @Transactional(readOnly = true)
-  @Override
   public List<UserResponseDto> findAllUsers() {
     return userMapper.toResponseDtoList(userRepository.findAll());
-  }
-
-  @Transactional(readOnly = true)
-  @Override
-  public List<UserResponseDto> findAllActiveUsers() {
-    return userMapper.toResponseDtoList(userRepository.findAllActiveUsers());
   }
 
   @CachePut(value = "users", key = "#id")
@@ -134,13 +121,12 @@ public class UserServiceImpl implements UserService {
   public void updateUserActiveStatusById(long id,boolean status) {
     User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-    logger.info("Updating user active status with id ={}",id);
     user.setActive(status);
   }
 
   @Transactional(readOnly = true)
   @Override
-  public PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
+  public PageResponseDto<UserResponseDto> findAllUsers(UserSearchCriteriaDto searchCriteria, Pageable pageable) {
     boolean noFilters =
             searchCriteria.getName() == null &&
                     searchCriteria.getSurname() == null &&

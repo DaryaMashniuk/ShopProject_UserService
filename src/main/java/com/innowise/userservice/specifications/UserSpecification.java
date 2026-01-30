@@ -16,23 +16,19 @@ public class UserSpecification {
   }
 
   private static Specification<User> containsFirstNameCaseInsensitive(String firstName) {
-    return (root, query, criteriaBuilder) -> (firstName == null || firstName.isBlank())
-            ? null : criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + firstName.toLowerCase() + "%");
+    return SpecificationUtils.likeIgnoreCase("name",firstName );
   }
 
   private static Specification<User> containsSurnameCaseInsensitive(String surname) {
-    return (root, query, criteriaBuilder) -> (surname == null || surname.isBlank())
-            ? null : criteriaBuilder.like(criteriaBuilder.lower(root.get("surname")), "%" + surname.toLowerCase() + "%");
+    return SpecificationUtils.likeIgnoreCase("surname",surname );
   }
 
   private static Specification<User> containsEmailCaseInsensitive(String email) {
-    return (root, query, criteriaBuilder) ->(email == null || email.isBlank())
-            ? null : criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), "%" + email.toLowerCase() + "%");
+    return SpecificationUtils.likeIgnoreCase("email",email );
   }
 
   private static Specification<User> hasActiveStatus(Boolean active) {
-    return (root, query, cb) ->(active == null)
-            ? null : cb.equal(root.get("active"), active);
+    return SpecificationUtils.equalsBoolean("active",active);
   }
 
 }

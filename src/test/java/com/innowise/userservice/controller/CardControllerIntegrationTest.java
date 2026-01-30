@@ -371,11 +371,11 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .active(true)
               .build();
 
-      mockMvc.perform(post("/api/v1/cards/search")
+      mockMvc.perform(get("/api/v1/cards")
+                      .param("holder", searchCriteria.getHolder())
+                      .param("active", String.valueOf(searchCriteria.getActive()))
                       .param("page", "0")
-                      .param("size", "10")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(objectMapper.writeValueAsString(searchCriteria)))
+                      .param("size", "10"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
               .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
@@ -385,16 +385,12 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Should return empty result when no cards match criteria")
     void shouldReturnEmptyResultWhenNoMatches() throws Exception {
-      CardSearchCriteriaDto noMatchCriteria = CardSearchCriteriaDto.builder()
-              .holder("NONEXISTENT")
-              .active(true)
-              .build();
 
-      mockMvc.perform(post("/api/v1/cards/search")
+      mockMvc.perform(get("/api/v1/cards")
+                      .param("holder", "NONEXISTENT")
+                      .param("active", "true")
                       .param("page", "0")
-                      .param("size", "10")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(objectMapper.writeValueAsString(noMatchCriteria)))
+                      .param("size", "10"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
               .andExpect(jsonPath("$.content", hasSize(0)))

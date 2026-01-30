@@ -256,11 +256,13 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
               .build();
       userRepository.save(inactiveUser);
 
-      mockMvc.perform(get("/api/v1/users/active"))
+      mockMvc.perform(get("/api/v1/users")
+                      .param("active", "true"))
               .andExpect(status().isOk())
-              .andExpect(jsonPath("$").isArray())
-              .andExpect(jsonPath("$", hasSize(2)))
-              .andExpect(jsonPath("$[?(@.active == false)]").doesNotExist());
+              .andExpect(jsonPath("$.content").isArray())
+              .andExpect(jsonPath("$.content", hasSize(2)))
+              .andExpect(jsonPath("$.content[*].active", everyItem(is(true))));
+
     }
   }
 
@@ -407,11 +409,13 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
               .active(true)
               .build();
 
-      mockMvc.perform(post("/api/v1/users/search")
+      mockMvc.perform(get("/api/v1/users")
+                      .param("name", searchCriteria.getName())
+                      .param("surname", searchCriteria.getSurname())
+                      .param("email", searchCriteria.getEmail())
+                      .param("active", String.valueOf(searchCriteria.getActive()))
                       .param("page", "0")
-                      .param("size", "10")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(objectMapper.writeValueAsString(searchCriteria)))
+                      .param("size", "10"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
               .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
@@ -421,18 +425,14 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Should return empty result when no users match criteria")
     void shouldReturnEmptyResultWhenNoMatches() throws Exception {
-      UserSearchCriteriaDto noMatchCriteria = UserSearchCriteriaDto.builder()
-              .name("NonExistent")
-              .surname("User")
-              .email("none@xistent.com")
-              .active(true)
-              .build();
 
-      mockMvc.perform(post("/api/v1/users/search")
+      mockMvc.perform(get("/api/v1/users")
+                      .param("name", "NonExistent")
+                      .param("surname", "User")
+                      .param("email", "none@xistent.com")
+                      .param("active", "true")
                       .param("page", "0")
-                      .param("size", "10")
-                      .contentType(MediaType.APPLICATION_JSON)
-                      .content(objectMapper.writeValueAsString(noMatchCriteria)))
+                      .param("size", "10"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
               .andExpect(jsonPath("$.content", hasSize(0)))

@@ -1,6 +1,11 @@
 package com.innowise.userservice.controller.api;
 
-import com.innowise.userservice.model.dto.*;
+import com.innowise.userservice.model.dto.ChangeStatusRequestDto;
+import com.innowise.userservice.model.dto.ErrorResponse;
+import com.innowise.userservice.model.dto.PageResponseDto;
+import com.innowise.userservice.model.dto.UserRequestDto;
+import com.innowise.userservice.model.dto.UserResponseDto;
+import com.innowise.userservice.model.dto.UserWithCardsDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,8 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "User Management", description = "API for managing system users")
 @RequestMapping("/api/v1/users")
@@ -56,11 +60,11 @@ public interface UserControllerApi {
   @PostMapping
   ResponseEntity<UserResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto);
 
-  @Operation(summary = "Get all users", description = "Retrieves paginated list of all users")
+  @Operation(summary = "Search users by criteria", description = "Searches users based on provided criteria with pagination")
   @ApiResponses(value = {
           @ApiResponse(
                   responseCode = "200",
-                  description = "Users retrieved successfully",
+                  description = "Search completed successfully",
                   content = @Content(
                           mediaType = "application/json",
                           schema = @Schema(implementation = PageResponseDto.class)
@@ -76,7 +80,12 @@ public interface UserControllerApi {
           )
   })
   @GetMapping
-  ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(@ParameterObject Pageable pageable);
+  ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(
+          @RequestParam(required = false) String name,
+          @RequestParam(required = false) String surname,
+          @RequestParam(required = false) String email,
+          @RequestParam(required = false) Boolean active,
+          @ParameterObject Pageable pageable);
 
   @Operation(summary = "Get user by ID", description = "Retrieves user information by user ID")
   @ApiResponses(value = {
@@ -173,31 +182,6 @@ public interface UserControllerApi {
   @GetMapping("/{id}/cards")
   ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id);
 
-  @Operation(summary = "Search users by criteria", description = "Searches users based on provided criteria with pagination")
-  @ApiResponses(value = {
-          @ApiResponse(
-                  responseCode = "200",
-                  description = "Search completed successfully",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = PageResponseDto.class)
-                  )
-          ),
-          @ApiResponse(
-                  responseCode = "400",
-                  description = "Invalid search criteria",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = ErrorResponse.class)
-                  )
-          )
-  })
-  @PostMapping("/search")
-  ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
-          @ParameterObject Pageable pageable,
-          @RequestBody @Valid UserSearchCriteriaDto searchCriteria
-  );
-
   @Operation(summary = "Delete user", description = "Permanently deletes a user from the system")
   @ApiResponses(value = {
           @ApiResponse(
@@ -216,25 +200,4 @@ public interface UserControllerApi {
   @DeleteMapping("/{id}")
   ResponseEntity<Void> deleteUser(@PathVariable("id") Long id);
 
-  @Operation(summary = "Get active users", description = "Retrieves all active users in the system")
-  @ApiResponses(value = {
-          @ApiResponse(
-                  responseCode = "200",
-                  description = "Active users retrieved successfully",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = List.class)
-                  )
-          ),
-          @ApiResponse(
-                  responseCode = "500",
-                  description = "Internal server error",
-                  content = @Content(
-                          mediaType = "application/json",
-                          schema = @Schema(implementation = ErrorResponse.class)
-                  )
-          )
-  })
-  @GetMapping("/active")
-  ResponseEntity<List<UserResponseDto>> getActiveUsers();
 }

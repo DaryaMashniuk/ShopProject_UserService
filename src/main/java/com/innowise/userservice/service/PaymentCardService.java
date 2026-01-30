@@ -25,11 +25,6 @@ public interface PaymentCardService {
   List<PaymentCardResponseDto> findAllPaymentCards();
 
   /**
-   * Finds all payment cards with pagination
-   */
-  PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(Pageable pageable);
-
-  /**
    * Updates a payment card by ID
    */
   PaymentCardResponseDto updatePaymentCardById(PaymentCardRequestDto paymentCardRequestDto, long id);
@@ -52,5 +47,5 @@ public interface PaymentCardService {
   /**
    * Searches payment cards by criteria with pagination
    */
-  PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable);
+  PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(CardSearchCriteriaDto searchCriteria, Pageable pageable);
 }

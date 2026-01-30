@@ -288,8 +288,9 @@ class UserServiceImplTest {
               any(java.util.function.Function.class)
       )).thenReturn(pageResponseDto);
 
+      UserSearchCriteriaDto userSearchCriteriaDto = new UserSearchCriteriaDto();
 
-      PageResponseDto<UserResponseDto> result = userService.findAllUsers(pageable);
+      PageResponseDto<UserResponseDto> result = userService.findAllUsers(userSearchCriteriaDto,pageable);
 
       assertNotNull(result);
       assertEquals(1, result.getContent().size());
@@ -316,29 +317,12 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should find all active users successfully")
-    void shouldFindAllActiveUsersSuccessfully(){
-      List<User> activeUsers = List.of(testUser);
-      List<UserResponseDto> activeUserResponseDtos = List.of(userResponseDto);
-      when(userRepository.findAllActiveUsers()).thenReturn(activeUsers);
-      when(userMapper.toResponseDtoList(activeUsers)).thenReturn(activeUserResponseDtos);
-
-      List<UserResponseDto> result = userService.findAllActiveUsers();
-
-      assertNotNull(result);
-      assertEquals(1, result.size());
-      assertEquals(userResponseDto.getId(), result.get(0).getId());
-      verify(userRepository).findAllActiveUsers();
-      verify(userMapper).toResponseDtoList(activeUsers);
-    }
-
-    @Test
     @DisplayName("Should find users by criteria successfully")
     void shouldFindUsersByCriteriaSuccessfully(){
       when(userRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(userPage);
       when(pageResponseMapper.mapToDto(eq(userPage), any(java.util.function.Function.class))).thenReturn(pageResponseDto);
 
-      PageResponseDto<UserResponseDto> result = userService.findAllUsersByCriteria(userSearchCriteriaDto, pageable);
+      PageResponseDto<UserResponseDto> result = userService.findAllUsers(userSearchCriteriaDto, pageable);
 
       assertNotNull(result);
       assertEquals(1, result.getContent().size());

@@ -31,19 +31,9 @@ public interface UserService {
   UserResponseDto findUserByEmail(String email);
 
   /**
-   * Finds all users with pagination
-   */
-  PageResponseDto<UserResponseDto> findAllUsers(Pageable pageable);
-
-  /**
    * Finds all users without pagination
    */
   List<UserResponseDto> findAllUsers();
-
-  /**
-   * Finds all active users
-   */
-  List<UserResponseDto> findAllActiveUsers();
 
   /**
    * Updates a user by ID
@@ -63,7 +53,7 @@ public interface UserService {
   /**
    * Searches users by criteria with pagination
    */
-  PageResponseDto<UserResponseDto> findAllUsersByCriteria(UserSearchCriteriaDto userSearchCriteriaDto, Pageable pageable);
+  PageResponseDto<UserResponseDto> findAllUsers(UserSearchCriteriaDto userSearchCriteriaDto, Pageable pageable);
 
   /**
    * Finds user with associated payment cards

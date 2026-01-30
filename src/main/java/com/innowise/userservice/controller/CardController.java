@@ -20,45 +20,43 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/v1/cards")
 public class CardController implements CardControllerApi {
 
-  private PaymentCardService paymentCardService;
-  private static final Logger logger = LogManager.getLogger(CardController.class);
+  private final PaymentCardService paymentCardService;
 
   @Override
   @PostMapping
   public ResponseEntity<PaymentCardResponseDto> createCard(@RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto) {
-    logger.info("Creating new payment card for user ID: {}", paymentCardRequestDto.getUserId());
     PaymentCardResponseDto createdCard = paymentCardService.createPaymentCard(paymentCardRequestDto);
     return new ResponseEntity<>(createdCard, HttpStatus.CREATED);
   }
 
   @Override
   @GetMapping
-  public ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getAllPaymentCards(Pageable pageable) {
-    logger.info("Retrieving all payment cards with pagination - page: {}, size: {}, sort: {}",
-            pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
-    return ResponseEntity.ok(paymentCardService.findAllPaymentCards(pageable));
+  public ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getAllPaymentCards(
+          @RequestParam(required = false) String number,
+          @RequestParam(required = false) String holder,
+          @RequestParam(required = false) Boolean active,
+          Pageable pageable) {
+    CardSearchCriteriaDto cardSearchCriteriaDto = new CardSearchCriteriaDto(number,holder,active);
+    return ResponseEntity.ok(paymentCardService.findAllPaymentCards(cardSearchCriteriaDto,pageable));
   }
 
   @Override
   @GetMapping("/{id}")
   public ResponseEntity<PaymentCardResponseDto> getCardById(@PathVariable Long id) {
-    logger.info("Retrieving payment card by ID: {}", id);
     return ResponseEntity.ok(paymentCardService.findPaymentCardById(id));
   }
 
   @Override
   @PutMapping("/{id}")
   public ResponseEntity<PaymentCardResponseDto> updateCard(@PathVariable Long id, @RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto) {
-    logger.info("Updating payment card with ID: {}", id);
     return ResponseEntity.ok(paymentCardService.updatePaymentCardById(paymentCardRequestDto, id));
   }
 
@@ -70,20 +68,8 @@ public class CardController implements CardControllerApi {
   }
 
   @Override
-  @PostMapping("/search")
-  public ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getPaymentCardsByCriteria(
-          Pageable pageable,
-          @RequestBody @Valid CardSearchCriteriaDto searchCriteria
-  ) {
-    logger.info("Searching payment cards with criteria: {} and pagination - page: {}, size: {}",
-            searchCriteria, pageable.getPageNumber(), pageable.getPageSize());
-    return ResponseEntity.ok(paymentCardService.findAllCardsByCriteria(searchCriteria, pageable));
-  }
-
-  @Override
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteCardById(@PathVariable Long id) {
-    logger.info("Deleting payment card with ID: {}", id);
     paymentCardService.deletePaymentCardById(id);
     return ResponseEntity.noContent().build();
   }

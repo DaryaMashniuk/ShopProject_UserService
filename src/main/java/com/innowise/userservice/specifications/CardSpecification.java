@@ -15,17 +15,14 @@ public class CardSpecification {
   }
 
   private static Specification<PaymentCard> hasNumber(String number) {
-    return (root, query, criteriaBuilder) -> (number == null || number.isBlank())
-            ? null : criteriaBuilder.like(root.get("number"), "%" +number+ "%");
+    return SpecificationUtils.likeIgnoreCase("number", number);
   }
 
   private static Specification<PaymentCard> containsHolderCaseInsensitive(String holder) {
-    return (root, query, criteriaBuilder) ->(holder == null || holder.isBlank())
-            ? null : criteriaBuilder.like(criteriaBuilder.lower(root.get("holder")), "%" + holder.toLowerCase() + "%");
+    return SpecificationUtils.likeIgnoreCase("holder", holder);
   }
 
   private static Specification<PaymentCard> isActive(Boolean active) {
-    return (root, query, cb) -> (active == null)
-            ? null : cb.equal(root.get("active"), active);
+    return SpecificationUtils.equalsBoolean("active", active);
   }
 }

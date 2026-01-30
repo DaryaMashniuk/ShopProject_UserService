@@ -70,13 +70,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     return paymentCardMapper.toResponseDtoList(paymentCardRepository.findAll());
   }
 
-  @Transactional(readOnly = true)
-  @Override
-  public PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(Pageable pageable) {
-    Page<PaymentCard> cards = paymentCardRepository.findAll(pageable);
-    return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
-  }
-
   @Override
   public PaymentCardResponseDto updatePaymentCardById(PaymentCardRequestDto paymentCardRequestDto, long id) {
     PaymentCard newCard = paymentCardRepository
@@ -103,7 +96,6 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     PaymentCard card = paymentCardRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Card", "id",id));
-    logger.info("Update payment card with id = {} ",id);
     card.setActive(status);
     userCacheService.evictUserCacheWithCards(card.getUser().getId());
   }
@@ -116,7 +108,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
   @Transactional(readOnly = true)
   @Override
-  public PageResponseDto<PaymentCardResponseDto> findAllCardsByCriteria(CardSearchCriteriaDto searchCriteria, Pageable pageable) {
+  public PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(CardSearchCriteriaDto searchCriteria, Pageable pageable) {
     boolean noFilters =
             searchCriteria.getActive() == null &&
                     searchCriteria.getHolder() == null &&

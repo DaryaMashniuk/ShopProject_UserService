@@ -3,14 +3,18 @@ package com.innowise.userservice.model.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
 @Builder
 @Schema(description = "Search criteria for payment cards")
+@AllArgsConstructor
+@NoArgsConstructor
 public class CardSearchCriteriaDto {
 
   @Schema(example = "1234567812345678")

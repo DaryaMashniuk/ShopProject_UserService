@@ -249,7 +249,8 @@ class PaymentCardServiceImplTest {
               any(java.util.function.Function.class)
       )).thenReturn(cardPageResponseDto);
 
-      PageResponseDto<PaymentCardResponseDto> result = paymentCardService.findAllPaymentCards(pageable);
+      CardSearchCriteriaDto searchCriteriaDto = new CardSearchCriteriaDto();
+      PageResponseDto<PaymentCardResponseDto> result = paymentCardService.findAllPaymentCards(searchCriteriaDto,pageable);
 
       assertNotNull(result);
       assertEquals(1, result.getContent().size());
@@ -286,7 +287,7 @@ class PaymentCardServiceImplTest {
       )).thenReturn(cardPageResponseDto);
 
       PageResponseDto<PaymentCardResponseDto> result =
-              paymentCardService.findAllCardsByCriteria(cardSearchCriteriaDto, pageable);
+              paymentCardService.findAllPaymentCards(cardSearchCriteriaDto, pageable);
 
       assertNotNull(result);
       assertEquals(1, result.getContent().size());

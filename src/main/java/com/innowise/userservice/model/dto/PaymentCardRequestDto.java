@@ -62,5 +62,6 @@ public class PaymentCardRequestDto {
           example = "1",
           requiredMode = Schema.RequiredMode.REQUIRED
   )
+  @NotNull
   private Long userId;
 }

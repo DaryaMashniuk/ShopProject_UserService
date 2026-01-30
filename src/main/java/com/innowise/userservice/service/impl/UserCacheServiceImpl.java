@@ -15,8 +15,5 @@ public class UserCacheServiceImpl implements UserCacheService {
    */
   @Override
   @CacheEvict(value = "users-with-cards", key = "#userId")
-  public void evictUserCacheWithCards(Long userId) {
-    // Cache eviction is handled declaratively via @CacheEvict annotation
-    // No explicit implementation needed
-  }
+  public void evictUserCacheWithCards(Long userId) {}
 }

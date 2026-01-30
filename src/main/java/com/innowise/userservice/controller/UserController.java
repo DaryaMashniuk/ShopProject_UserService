@@ -10,44 +10,50 @@ import com.innowise.userservice.model.dto.UserWithCardsDto;
 import com.innowise.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController implements UserControllerApi {
 
-  private static final Logger logger = LogManager.getLogger(UserController.class);
-  private UserService userService;
+  private final UserService userService;
 
   @Override
   @PostMapping
   public ResponseEntity<UserResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
-    logger.info("Creating new user with email: {}", userRequestDto.getEmail());
     UserResponseDto createdUser = userService.createUser(userRequestDto);
     return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
   }
 
   @Override
   @GetMapping
-  public ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(Pageable pageable) {
-    logger.info("Retrieving all users with pagination - page: {}, size: {}",
-            pageable.getPageNumber(), pageable.getPageSize());
-    PageResponseDto<UserResponseDto> users = userService.findAllUsers(pageable);
+  public ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(
+          @RequestParam(required = false) String name,
+          @RequestParam(required = false) String surname,
+          @RequestParam(required = false) String email,
+          @RequestParam(required = false) Boolean active,
+          Pageable pageable) {
+    UserSearchCriteriaDto searchCriteria = new UserSearchCriteriaDto(name, surname, email, active);
+    PageResponseDto<UserResponseDto> users = userService.findAllUsers(searchCriteria, pageable);
     return ResponseEntity.ok(users);
   }
 
   @Override
   @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable("id") Long id) {
-    logger.info("Retrieving user by ID: {}", id);
     UserResponseDto user = userService.findUserById(id);
     return ResponseEntity.ok(user);
   }
@@ -56,7 +62,6 @@ public class UserController implements UserControllerApi {
   @PutMapping("/{id}")
   public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Long id,
                                                     @RequestBody @Valid UserRequestDto userRequestDto) {
-    logger.info("Updating user with ID: {}", id);
     UserResponseDto updatedUser = userService.updateUserById(userRequestDto, id);
     return ResponseEntity.ok(updatedUser);
   }
@@ -71,36 +76,17 @@ public class UserController implements UserControllerApi {
   @Override
   @GetMapping("/{id}/cards")
   public ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id) {
-    logger.info("Retrieving user with cards by ID: {}", id);
     UserWithCardsDto user = userService.findUserWithCardsByUserId(id);
     return ResponseEntity.ok(user);
   }
 
-  @Override
-  @PostMapping("/search")
-  public ResponseEntity<PageResponseDto<UserResponseDto>> getUsersByCriteria(
-          Pageable pageable,
-          @RequestBody @Valid UserSearchCriteriaDto searchCriteria
-  ) {
-    logger.info("Searching users with criteria: {} and pagination - page: {}, size: {}",
-            searchCriteria, pageable.getPageNumber(), pageable.getPageSize());
-    PageResponseDto<UserResponseDto> users = userService.findAllUsersByCriteria(searchCriteria, pageable);
-    return ResponseEntity.ok(users);
-  }
+
 
   @Override
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
-    logger.info("Deleting user with ID: {}", id);
     userService.deleteUserById(id);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
-  @Override
-  @GetMapping("/active")
-  public ResponseEntity<List<UserResponseDto>> getActiveUsers() {
-    logger.info("Retrieving all active users");
-    List<UserResponseDto> activeUsers = userService.findAllActiveUsers();
-    return ResponseEntity.ok(activeUsers);
-  }
 }
