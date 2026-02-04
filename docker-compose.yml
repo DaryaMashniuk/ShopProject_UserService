@@ -1,0 +1,43 @@
+volumes:
+  postgres_data:
+  redis_data:
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: user-service-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT}
+      SPRING_PROFILES_ACTIVE: docker
+
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  redis:
+    image: redis:7
+    container_name: user-service-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning" ]
+    volumes:
+      - redis_data:/data

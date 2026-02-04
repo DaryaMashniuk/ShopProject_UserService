@@ -3,6 +3,7 @@
 *.jar
 *.war
 *.ear
+.env
 
 ### Maven ###
 target/
@@ -14,7 +15,6 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
-
 ### IDE ###
 .idea/
 *.iws
