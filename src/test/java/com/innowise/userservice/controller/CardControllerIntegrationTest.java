@@ -11,6 +11,7 @@ import com.innowise.userservice.model.dto.PaymentCardRequestDto;
 import com.innowise.userservice.repository.PaymentCardRepository;
 import com.innowise.userservice.repository.UserRepository;
 import com.innowise.userservice.service.AuthorisationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -80,8 +81,11 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
 
     testCard = paymentCardDataFactory.createRandomCardForUser(testUser);
 
-    when(authorisationService.hasAdminRole(any()))
-            .thenReturn(true);
+  }
+
+  @BeforeEach
+  void setupAuthMock() {
+    when(authorisationService.hasAdminRole(any())).thenReturn(true);
   }
 
   private Cache getUsersCache() {
