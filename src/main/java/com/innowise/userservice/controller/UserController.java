@@ -33,7 +33,7 @@ public class UserController implements UserControllerApi {
   private final UserService userService;
 
   @Override
-  @PreAuthorize("@authorizationService.hasAdminRole(authentication)")
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PostMapping
   public ResponseEntity<UserResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
     UserResponseDto createdUser = userService.createUser(userRequestDto);
@@ -41,7 +41,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
-  @PreAuthorize("@authorizationService.hasAdminRole(authentication)")
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @GetMapping
   public ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(
           @RequestParam(required = false) String name,
@@ -56,8 +56,8 @@ public class UserController implements UserControllerApi {
 
   @Override
   @PreAuthorize(
-          "@authorizationService.hasAdminRole(authentication) or " +
-                  "@authorizationService.isSelf(#id, authentication)"
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
   )
   @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable("id") Long id) {
@@ -67,8 +67,8 @@ public class UserController implements UserControllerApi {
 
   @Override
   @PreAuthorize(
-          "@authorizationService.hasAdminRole(authentication) or " +
-                  "@authorizationService.isSelf(#id, authentication)"
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
   )
   @PutMapping("/{id}")
   public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Long id,
@@ -78,7 +78,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
-  @PreAuthorize("@authorizationService.hasAdminRole(authentication)")
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PatchMapping("/{id}")
   public ResponseEntity<Void> updateUserStatus(@PathVariable("id") Long id, @RequestBody @Valid ChangeStatusRequestDto statusDto) {
     userService.updateUserActiveStatusById(id, statusDto.getActive());
@@ -87,8 +87,8 @@ public class UserController implements UserControllerApi {
 
   @Override
   @PreAuthorize(
-          "@authorizationService.hasAdminRole(authentication) or " +
-                  "@authorizationService.isSelf(#id, authentication)"
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
   )
   @GetMapping("/{id}/cards")
   public ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id) {
@@ -99,7 +99,7 @@ public class UserController implements UserControllerApi {
 
 
   @Override
-  @PreAuthorize("@authorizationService.hasAdminRole(authentication)")
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
     userService.deleteUserById(id);
