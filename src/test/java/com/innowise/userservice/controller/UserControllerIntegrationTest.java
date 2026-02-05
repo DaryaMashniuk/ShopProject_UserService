@@ -9,20 +9,40 @@ import com.innowise.userservice.model.dto.UserRequestDto;
 import com.innowise.userservice.model.dto.UserResponseDto;
 import com.innowise.userservice.model.dto.UserSearchCriteriaDto;
 import com.innowise.userservice.repository.UserRepository;
+import com.innowise.userservice.service.AuthorisationService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class UserControllerIntegrationTest extends BaseIntegrationTest {
@@ -42,10 +62,23 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   @Autowired
   private CacheManager cacheManager;
 
+  @MockBean(name = "authorisationService")
+  private AuthorisationService authorisationService;
+
   private User testUser;
 
-  private void initTestData() {
+  @BeforeEach
+  void setUp() {
     testUser = userDataFactory.createRandomUser();
+
+    when(authorisationService.hasAdminRole(any()))
+            .thenReturn(true);
+
+  }
+
+  @AfterEach
+  void tearDown() {
+    userRepository.deleteAll();
   }
 
   private Cache getUsersCache() {
@@ -88,6 +121,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class CreateUserTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should create user successfully with valid request and cache result")
     void shouldCreateUserSuccessfully() throws Exception {
       UserRequestDto newUserRequest = UserRequestDto.builder()
@@ -106,13 +140,11 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(jsonPath("$.name").value("New"))
               .andExpect(jsonPath("$.surname").value("User"))
               .andExpect(jsonPath("$.email").value("new.user@example.com"))
-              .andExpect(jsonPath("$.active").value(true))
-              .andReturn()
-              .getResponse()
-              .getContentAsString();
+              .andExpect(jsonPath("$.active").value(true));
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 400 when creating user with invalid data")
     void shouldReturnBadRequestWhenInvalidData() throws Exception {
       UserRequestDto invalidUser = UserRequestDto.builder()
@@ -136,10 +168,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 409 when creating user with existing email")
     void shouldReturnConflictWhenEmailExists() throws Exception {
-      initTestData();
-
       UserRequestDto duplicateUser = UserRequestDto.builder()
               .name("Another")
               .surname("User")
@@ -154,6 +185,26 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(jsonPath("$.status").value(409))
               .andExpect(jsonPath("$.message").value("User with email " + testUser.getEmail() + " already exists"));
     }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to create user")
+    void shouldReturnForbiddenWhenRegularUserCreatesUser() throws Exception {
+      when(authorisationService.hasAdminRole(any( ))).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
+      UserRequestDto newUserRequest = UserRequestDto.builder()
+              .name("New")
+              .surname("User")
+              .email("new.user@example.com")
+              .birthDate(LocalDate.of(1995, 5, 15))
+              .active(true)
+              .build();
+
+      mockMvc.perform(post("/api/v1/users")
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(newUserRequest)))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Nested
@@ -161,10 +212,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class GetUserTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get user by id successfully and cache result")
     void shouldGetUserByIdSuccessfully() throws Exception {
-      initTestData();
-
       String response = mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.id").value(testUser.getId()))
@@ -185,6 +235,30 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should get own user profile successfully")
+    void shouldGetOwnUserProfileSuccessfully() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(true);
+
+      mockMvc.perform(get("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$.id").value(testUser.getId()));
+    }
+
+    @Test
+    @DisplayName("Should return 403 when getting other user's profile")
+    void shouldReturnForbiddenWhenGettingOtherUserProfile() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
+
+      mockMvc.perform(get("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId()+1)).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when user not found")
     void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
       Long nonExistentId = 999L;
@@ -195,10 +269,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get user with cards successfully and cache result")
     void shouldGetUserWithCardsSuccessfully() throws Exception {
-      initTestData();
-
       mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId()))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.id").value(testUser.getId()))
@@ -215,6 +288,29 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
       mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId()))
               .andExpect(status().isOk());
     }
+
+    @Test
+    @DisplayName("Should get own user with cards successfully")
+    void shouldGetOwnUserWithCardsSuccessfully() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(true);
+
+      mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$.id").value(testUser.getId()));
+    }
+
+    @Test
+    @DisplayName("Should return 403 when getting other user's cards")
+    void shouldReturnForbiddenWhenGettingOtherUserCards() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
+
+      mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId()+1)).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Nested
@@ -222,6 +318,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class GetAllUsersTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get all users with pagination successfully")
     void shouldGetAllUsersWithPagination() throws Exception {
       userDataFactory.createRandomUser();
@@ -233,15 +330,16 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
                       .param("size", "10"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
-              .andExpect(jsonPath("$.content", hasSize(3)))
+              .andExpect(jsonPath("$.content", hasSize(4))) // 3 new + original testUser
               .andExpect(jsonPath("$.currentPage").value(0))
               .andExpect(jsonPath("$.pageSize").value(10))
-              .andExpect(jsonPath("$.totalElements").value(3))
+              .andExpect(jsonPath("$.totalElements").value(4))
               .andExpect(jsonPath("$.first").value(true))
               .andExpect(jsonPath("$.last").value(true));
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get all active users successfully")
     void shouldGetAllActiveUsers() throws Exception {
       userDataFactory.createRandomUser();
@@ -260,9 +358,18 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
                       .param("active", "true"))
               .andExpect(status().isOk())
               .andExpect(jsonPath("$.content").isArray())
-              .andExpect(jsonPath("$.content", hasSize(2)))
+              .andExpect(jsonPath("$.content", hasSize(3))) // 2 new + original testUser
               .andExpect(jsonPath("$.content[*].active", everyItem(is(true))));
+    }
 
+    @Test
+    @DisplayName("Should return 403 when regular user tries to get all users")
+    void shouldReturnForbiddenWhenRegularUserGetsAllUsers() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      mockMvc.perform(get("/api/v1/users")
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
     }
   }
 
@@ -271,11 +378,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class UpdateUserTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should update user successfully and update cache")
     void shouldUpdateUserSuccessfully() throws Exception {
-      initTestData();
-
-
       mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()));
 
       UserRequestDto updateRequest = UserRequestDto.builder()
@@ -304,10 +409,54 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should update own user profile successfully")
+    void shouldUpdateOwnUserProfileSuccessfully() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(true);
+      System.out.println("Test User " + testUser.getId());
+
+      UserRequestDto updateRequest = UserRequestDto.builder()
+              .name("Updated Name")
+              .surname("Updated Surname")
+              .email("updated.email" + System.currentTimeMillis() + "@example.com")
+              .birthDate(LocalDate.of(1991, 2, 16))
+              .active(true)
+              .build();
+
+      mockMvc.perform(put("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(updateRequest)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$.id").value(testUser.getId()))
+              .andExpect(jsonPath("$.name").value("Updated Name"));
+    }
+
+    @Test
+    @DisplayName("Should return 403 when updating other user's profile")
+    void shouldReturnForbiddenWhenUpdatingOtherUserProfile() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
+
+      UserRequestDto updateRequest = UserRequestDto.builder()
+              .name("Updated Name")
+              .surname("Updated Surname")
+              .email("updated@example.com")
+              .birthDate(LocalDate.of(1991, 2, 16))
+              .active(true)
+              .build();
+
+      mockMvc.perform(put("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId()+1)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(updateRequest)))
+              .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 409 when updating to existing email")
     void shouldReturnConflictWhenUpdatingToExistingEmail() throws Exception {
-      initTestData();
-
       User secondUser = userDataFactory.createRandomUser();
 
       UserRequestDto updateRequest = UserRequestDto.builder()
@@ -326,14 +475,13 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should activate user successfully and update cache")
     void shouldActivateUserSuccessfully() throws Exception {
-      initTestData();
       testUser.setActive(false);
       userRepository.save(testUser);
 
       mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()));
-
 
       ChangeStatusRequestDto activateRequest = ChangeStatusRequestDto.builder()
               .active(true)
@@ -344,7 +492,6 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
                       .content(objectMapper.writeValueAsString(activateRequest)))
               .andExpect(status().isOk());
 
-
       assertUserNotInCache(testUser.getId());
       assertUserWithCardsNotInCache(testUser.getId());
 
@@ -353,10 +500,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should deactivate user successfully and update cache")
     void shouldDeactivateUserSuccessfully() throws Exception {
-      initTestData();
-
       mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()));
 
       ChangeStatusRequestDto deactivateRequest = ChangeStatusRequestDto.builder()
@@ -376,10 +522,25 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return 403 when regular user tries to change status")
+    void shouldReturnForbiddenWhenRegularUserChangesStatus() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      ChangeStatusRequestDto statusRequest = ChangeStatusRequestDto.builder()
+              .active(false)
+              .build();
+
+      mockMvc.perform(patch("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(statusRequest)))
+              .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 400 when status is null")
     void shouldReturnBadRequestWhenStatusIsNull() throws Exception {
-      initTestData();
-
       ChangeStatusRequestDto nullStatusRequest = ChangeStatusRequestDto.builder()
               .active(null)
               .build();
@@ -398,6 +559,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class SearchUsersTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should search users by criteria successfully")
     void shouldSearchUsersByCriteriaSuccessfully() throws Exception {
       User searchableUser = userDataFactory.createRandomUser();
@@ -405,7 +567,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
       UserSearchCriteriaDto searchCriteria = UserSearchCriteriaDto.builder()
               .name(searchableUser.getName().substring(0, 4))
               .surname(searchableUser.getSurname().substring(0, 4))
-              .email(searchableUser.getEmail().substring(size-1,searchableUser.getEmail().length()-1 ))
+              .email(searchableUser.getEmail().substring(size - 1, searchableUser.getEmail().length() - 1))
               .active(true)
               .build();
 
@@ -423,9 +585,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return empty result when no users match criteria")
     void shouldReturnEmptyResultWhenNoMatches() throws Exception {
-
       mockMvc.perform(get("/api/v1/users")
                       .param("name", "NonExistent")
                       .param("surname", "User")
@@ -445,10 +607,9 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   class DeleteUserTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should delete user successfully and remove from cache")
     void shouldDeleteUserSuccessfully() throws Exception {
-      initTestData();
-
       mockMvc.perform(get("/api/v1/users/{id}", testUser.getId()));
       mockMvc.perform(get("/api/v1/users/{id}/cards", testUser.getId()));
       assertUserWithCardsInCache(testUser.getId());
@@ -464,6 +625,18 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return 403 when regular user tries to delete user")
+    void shouldReturnForbiddenWhenRegularUserDeletesUser() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
+
+      mockMvc.perform(delete("/api/v1/users/{id}", testUser.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when deleting non-existent user")
     void shouldReturnNotFoundWhenDeletingNonExistentUser() throws Exception {
       Long nonExistentId = 999L;
@@ -474,15 +647,17 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 for non-existent endpoint")
     void shouldReturnNotFoundForNonExistentEndpoint() throws Exception {
       Long nonExistentId = 999L;
-      mockMvc.perform(get("/api/v1/users/{id}",nonExistentId))
+      mockMvc.perform(get("/api/v1/users/{id}", nonExistentId))
               .andExpect(status().isNotFound())
               .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should handle malformed JSON")
     void shouldHandleMalformedJson() throws Exception {
       String malformedJson = "{ \"name\": \"John\", \"email\": }";
@@ -497,8 +672,11 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  @WithMockUser(roles = "ADMIN")
   @DisplayName("Should handle empty database gracefully")
   void shouldHandleEmptyDatabaseGracefully() throws Exception {
+    userRepository.deleteAll();
+
     mockMvc.perform(get("/api/v1/users")
                     .param("page", "0")
                     .param("size", "10"))

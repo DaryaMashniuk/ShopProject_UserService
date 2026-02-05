@@ -10,20 +10,36 @@ import com.innowise.userservice.model.dto.ChangeStatusRequestDto;
 import com.innowise.userservice.model.dto.PaymentCardRequestDto;
 import com.innowise.userservice.repository.PaymentCardRepository;
 import com.innowise.userservice.repository.UserRepository;
+import com.innowise.userservice.service.AuthorisationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class CardControllerIntegrationTest extends BaseIntegrationTest {
@@ -46,8 +62,12 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   @Autowired
   private CacheManager cacheManager;
 
+  @MockBean(name = "authorisationService")
+  private AuthorisationService authorisationService;
+
   private PaymentCard testCard;
   private User testUser;
+
 
   private void initTestData() {
     testUser = userRepository.save(User.builder()
@@ -60,6 +80,8 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
 
     testCard = paymentCardDataFactory.createRandomCardForUser(testUser);
 
+    when(authorisationService.hasAdminRole(any()))
+            .thenReturn(true);
   }
 
   private Cache getUsersCache() {
@@ -87,6 +109,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class CreateCardTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should create card successfully with valid request")
     void shouldCreateCardSuccessfully() throws Exception {
       initTestData();
@@ -113,6 +136,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 400 when creating card with invalid data")
     void shouldReturnBadRequestWhenInvalidData() throws Exception {
       initTestData();
@@ -134,6 +158,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when creating card for non-existent user")
     void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
       PaymentCardRequestDto cardRequest = PaymentCardRequestDto.builder()
@@ -150,6 +175,26 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(status().isNotFound())
               .andExpect(jsonPath("$.status").value(404));
     }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to create card")
+    void shouldReturnForbiddenWhenRegularUserCreatesCard() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      PaymentCardRequestDto newCardRequest = PaymentCardRequestDto.builder()
+              .number("5111111111111111")
+              .holder("JOHN SMITH")
+              .expirationDate(LocalDate.now().plusYears(3))
+              .active(true)
+              .userId(testUser.getId())
+              .build();
+
+      mockMvc.perform(post("/api/v1/cards")
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(newCardRequest)))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Nested
@@ -157,6 +202,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class GetCardTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get card by id successfully")
     void shouldGetCardByIdSuccessfully() throws Exception {
       initTestData();
@@ -171,6 +217,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when card not found")
     void shouldReturnNotFoundWhenCardDoesNotExist() throws Exception {
       Long nonExistentId = 999L;
@@ -179,6 +226,31 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(status().isNotFound())
               .andExpect(jsonPath("$.status").value(404));
     }
+
+    @Test
+    @DisplayName("Should get own card successfully")
+    void shouldGetOwnCardSuccessfully() throws Exception {
+      initTestData();
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelfCard(eq(testCard.getId()), any())).thenReturn(true);
+
+      mockMvc.perform(get("/api/v1/cards/{id}", testCard.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$.id").value(testCard.getId()));
+    }
+
+    @Test
+    @DisplayName("Should return 403 when getting other user's card")
+    void shouldReturnForbiddenWhenGettingOtherUserCard() throws Exception {
+      initTestData();
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+      when(authorisationService.isSelfCard(eq(testCard.getId()), any())).thenReturn(false);
+
+      mockMvc.perform(get("/api/v1/cards/{id}", testCard.getId())
+                      .with(user(String.valueOf(testCard.getUser().getId()+1)).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Nested
@@ -186,6 +258,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class GetAllCardsTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get all cards with pagination successfully")
     void shouldGetAllCardsWithPagination() throws Exception {
       User user1 = userRepository.save(User.builder()
@@ -211,6 +284,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should get empty list when no cards exist")
     void shouldGetEmptyListWhenNoCardsExist() throws Exception {
       mockMvc.perform(get("/api/v1/cards")
@@ -221,6 +295,16 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(jsonPath("$.content", hasSize(0)))
               .andExpect(jsonPath("$.totalElements").value(0));
     }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to get all cards")
+    void shouldReturnForbiddenWhenRegularUserGetsAllCards() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      mockMvc.perform(get("/api/v1/cards")
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Nested
@@ -228,6 +312,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class UpdateCardTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should update card successfully")
     void shouldUpdateCardSuccessfully() throws Exception {
       initTestData();
@@ -253,6 +338,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should activate card successfully")
     void shouldActivateCardSuccessfully() throws Exception {
       initTestData();
@@ -276,6 +362,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should deactivate card successfully")
     void shouldDeactivateCardSuccessfully() throws Exception {
       initTestData();
@@ -299,6 +386,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 400 when status is null")
     void shouldReturnBadRequestWhenStatusIsNull() throws Exception {
       initTestData();
@@ -316,6 +404,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when updating non-existent card")
     void shouldReturnNotFoundWhenUpdatingNonExistentCard() throws Exception {
       initTestData();
@@ -335,6 +424,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when updating status of non-existent card")
     void shouldReturnNotFoundWhenUpdatingStatusOfNonExistentCard() throws Exception {
       ChangeStatusRequestDto activateRequest = ChangeStatusRequestDto.builder()
@@ -347,6 +437,28 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(status().isNotFound())
               .andExpect(jsonPath("$.status").value(404));
     }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to update card")
+    void shouldReturnForbiddenWhenRegularUserUpdatesCard() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      PaymentCardRequestDto updateRequest = PaymentCardRequestDto.builder()
+              .number("5111111111111112")
+              .holder("UPDATED HOLDER")
+              .expirationDate(LocalDate.now().plusYears(4))
+              .active(false)
+              .userId(testUser.getId())
+              .build();
+
+      mockMvc.perform(put("/api/v1/cards/{id}", testCard.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(objectMapper.writeValueAsString(updateRequest)))
+              .andExpect(status().isForbidden());
+    }
+
+
   }
 
   @Nested
@@ -354,6 +466,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class SearchCardsTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should search cards by criteria successfully")
     void shouldSearchCardsByCriteriaSuccessfully() throws Exception {
       User user = userRepository.save(User.builder()
@@ -383,6 +496,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return empty result when no cards match criteria")
     void shouldReturnEmptyResultWhenNoMatches() throws Exception {
 
@@ -403,6 +517,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
   class DeleteCardTests {
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should delete card successfully")
     void shouldDeleteCardSuccessfully() throws Exception {
       initTestData();
@@ -418,6 +533,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("Should return 404 when deleting non-existent card")
     void shouldReturnNotFoundWhenDeletingNonExistentCard() throws Exception {
       Long nonExistentId = 999L;
@@ -426,9 +542,21 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
               .andExpect(status().isNotFound())
               .andExpect(jsonPath("$.status").value(404));
     }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to delete card")
+    void shouldReturnForbiddenWhenRegularUserDeletesCard() throws Exception {
+      initTestData();
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      mockMvc.perform(delete("/api/v1/cards/{id}", testCard.getId())
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+              .andExpect(status().isForbidden());
+    }
   }
 
   @Test
+  @WithMockUser(roles = "ADMIN")
   @DisplayName("Should handle malformed JSON")
   void shouldHandleMalformedJson() throws Exception {
     String malformedJson = "{ \"number\": \"4111111111111111\", \"holder\": }";

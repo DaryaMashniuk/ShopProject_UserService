@@ -1,12 +1,14 @@
 package com.innowise.userservice.exceptions;
 
 import com.innowise.userservice.model.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -173,4 +175,21 @@ public class GlobalExceptionHandler {
     );
     return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
   }
+
+  @ExceptionHandler(AuthorizationDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(
+          AuthorizationDeniedException ex,
+          HttpServletRequest request
+  ) {
+    ErrorResponse error = ErrorResponse.builder()
+            .timestamp(Instant.now())
+            .status(403)
+            .error("Forbidden")
+            .message("Access denied")
+            .path(request.getRequestURI())
+            .build();
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+  }
+
 }
