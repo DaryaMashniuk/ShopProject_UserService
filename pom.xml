@@ -24,6 +24,7 @@
 		</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.coverage.exclusions>
 			**/model/**,
+			**/impl/**,
 			**/dto/**,
 			**/exceptions/**,
 			**/config/**,

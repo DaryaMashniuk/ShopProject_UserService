@@ -12,12 +12,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import java.util.Collections;
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -202,7 +203,7 @@ class AuthorisationServiceTest {
       Long cardId = 100L;
       Long authUserId = 2L;
 
-      when(paymentCardService.isCardOwnedByUser(eq(cardId), eq(authUserId)))
+      when(paymentCardService.isCardOwnedByUser(cardId, authUserId))
               .thenReturn(true);
 
       boolean result = authorisationService.isSelfCard(cardId, userAuthentication);
@@ -217,7 +218,7 @@ class AuthorisationServiceTest {
       Long cardId = 100L;
       Long authUserId = 2L;
 
-      when(paymentCardService.isCardOwnedByUser(eq(cardId), eq(authUserId)))
+      when(paymentCardService.isCardOwnedByUser(cardId, authUserId))
               .thenReturn(false);
 
       boolean result = authorisationService.isSelfCard(cardId, userAuthentication);
@@ -248,7 +249,7 @@ class AuthorisationServiceTest {
               Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
       );
 
-      when(paymentCardService.isCardOwnedByUser(eq(cardId), eq(authUserId)))
+      when(paymentCardService.isCardOwnedByUser(cardId, authUserId))
               .thenReturn(true);
 
       boolean result = authorisationService.isSelfCard(cardId, auth);
@@ -263,7 +264,7 @@ class AuthorisationServiceTest {
       Long cardId = 100L;
       Long authUserId = 1L;
 
-      when(paymentCardService.isCardOwnedByUser(eq(cardId), eq(authUserId)))
+      when(paymentCardService.isCardOwnedByUser(cardId, authUserId))
               .thenReturn(false);
 
       boolean result = authorisationService.isSelfCard(cardId, adminAuthentication);

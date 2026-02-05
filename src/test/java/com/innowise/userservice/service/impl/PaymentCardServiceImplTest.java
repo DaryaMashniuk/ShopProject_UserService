@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -400,4 +401,56 @@ class PaymentCardServiceImplTest {
     }
 
   }
+
+  @Nested
+  @DisplayName("isCardOwnedByUser Tests")
+  class IsCardOwnedByUserTests {
+
+    @Test
+    @DisplayName("Should return true when card belongs to user")
+    void shouldReturnTrueWhenCardBelongsToUser() {
+      Long cardId = 1L;
+      Long userId = 1L;
+
+      when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(testCard));
+
+      boolean result = paymentCardService.isCardOwnedByUser(cardId, userId);
+
+      assertTrue(result);
+      verify(paymentCardRepository).findById(cardId);
+    }
+
+    @Test
+    @DisplayName("Should return false when card belongs to another user")
+    void shouldReturnFalseWhenCardBelongsToAnotherUser() {
+      Long cardId = 1L;
+      Long userId = 999L;
+
+      when(paymentCardRepository.findById(cardId)).thenReturn(Optional.of(testCard));
+
+      boolean result = paymentCardService.isCardOwnedByUser(cardId, userId);
+
+      assertFalse(result);
+      verify(paymentCardRepository).findById(cardId);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when card not found")
+    void shouldThrowExceptionWhenCardNotFound() {
+      Long cardId = 999L;
+
+      when(paymentCardRepository.findById(cardId)).thenReturn(Optional.empty());
+
+      ResourceNotFoundException exception = assertThrows(
+              ResourceNotFoundException.class,
+              () -> paymentCardService.isCardOwnedByUser(cardId, 1L)
+      );
+
+      assertEquals(exception.getMessage(),
+              String.format("%s not found with %s: '%s'", "Card", "id", cardId));
+
+      verify(paymentCardRepository).findById(cardId);
+    }
+  }
+
 }
