@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/v1/users")
@@ -104,6 +106,13 @@ public class UserController implements UserControllerApi {
   public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
     userService.deleteUserById(id);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
+  @GetMapping("/batch")
+  public ResponseEntity<List<UserResponseDto>> getUsersByIds(@RequestParam List<Long> ids) {
+    return ResponseEntity.ok(userService.getUsersByIds(ids));
   }
 
 }

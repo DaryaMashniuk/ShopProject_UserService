@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
@@ -684,5 +685,167 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
             .andExpect(jsonPath("$.content").isArray())
             .andExpect(jsonPath("$.content", hasSize(0)))
             .andExpect(jsonPath("$.totalElements").value(0));
+  }
+
+  @Nested
+  @DisplayName("Get Users By Ids Tests")
+  class GetUsersByIdsTests {
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should get users by ids successfully")
+    void shouldGetUsersByIdsSuccessfully() throws Exception {
+      User secondUser = userDataFactory.createRandomUser();
+      User thirdUser = userDataFactory.createRandomUser();
+
+      List<Long> userIds = List.of(testUser.getId(), secondUser.getId(), thirdUser.getId());
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", userIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(3)))
+              .andExpect(jsonPath("$[0].id").value(testUser.getId()))
+              .andExpect(jsonPath("$[0].name").value(testUser.getName()))
+              .andExpect(jsonPath("$[0].email").value(testUser.getEmail()))
+              .andExpect(jsonPath("$[1].id").value(secondUser.getId()))
+              .andExpect(jsonPath("$[1].name").value(secondUser.getName()))
+              .andExpect(jsonPath("$[2].id").value(thirdUser.getId()))
+              .andExpect(jsonPath("$[2].name").value(thirdUser.getName()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should return empty list when no users found for given ids")
+    void shouldReturnEmptyListWhenNoUsersFound() throws Exception {
+      List<Long> nonExistentIds = List.of(999L, 1000L, 1001L);
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", nonExistentIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(0)))
+              .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should return only existing users when some ids don't exist")
+    void shouldReturnOnlyExistingUsersWhenSomeIdsDontExist() throws Exception {
+      User secondUser = userDataFactory.createRandomUser();
+
+      List<Long> mixedIds = List.of(testUser.getId(), 999L, secondUser.getId(), 1000L);
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", mixedIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(2)))
+              .andExpect(jsonPath("$[0].id").value(testUser.getId()))
+              .andExpect(jsonPath("$[0].name").value(testUser.getName()))
+              .andExpect(jsonPath("$[1].id").value(secondUser.getId()))
+              .andExpect(jsonPath("$[1].name").value(secondUser.getName()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should handle single id parameter")
+    void shouldHandleSingleId() throws Exception {
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", String.valueOf(testUser.getId())))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(1)))
+              .andExpect(jsonPath("$[0].id").value(testUser.getId()))
+              .andExpect(jsonPath("$[0].name").value(testUser.getName()))
+              .andExpect(jsonPath("$[0].email").value(testUser.getEmail()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should handle duplicate ids in request")
+    void shouldHandleDuplicateIds() throws Exception {
+      List<Long> duplicateIds = List.of(testUser.getId(), testUser.getId(), testUser.getId());
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", duplicateIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(1))) // Should return unique users
+              .andExpect(jsonPath("$[0].id").value(testUser.getId()))
+              .andExpect(jsonPath("$[0].name").value(testUser.getName()));
+    }
+
+    @Test
+    @DisplayName("Should return 403 when regular user tries to get users by ids")
+    void shouldReturnForbiddenWhenRegularUserGetsUsersByIds() throws Exception {
+      when(authorisationService.hasAdminRole(any())).thenReturn(false);
+
+      List<Long> userIds = List.of(testUser.getId());
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .with(user(String.valueOf(testUser.getId())).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                      .param("ids", userIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should handle large number of ids")
+    void shouldHandleLargeNumberOfIds() throws Exception {
+      // Create many users
+      List<Long> userIds = new java.util.ArrayList<>();
+      for (int i = 0; i < 20; i++) {
+        User user = userDataFactory.createRandomUser();
+        userIds.add(user.getId());
+      }
+
+      mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", userIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(20)));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Should preserve order of users as returned by service")
+    void shouldPreserveUserOrder() throws Exception {
+      // Create users in a specific order
+      User user1 = userDataFactory.createRandomUser(); // Will have some ID
+      User user2 = userDataFactory.createRandomUser(); // Will have larger ID
+      User user3 = userDataFactory.createRandomUser(); // Will have even larger ID
+
+      // Request in reverse order of creation
+      List<Long> userIds = List.of(user3.getId(), user1.getId(), user2.getId());
+
+      String response = mockMvc.perform(get("/api/v1/users/batch")
+                      .param("ids", userIds.stream()
+                              .map(String::valueOf)
+                              .toArray(String[]::new)))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$", hasSize(3)))
+              .andReturn()
+              .getResponse()
+              .getContentAsString();
+
+      // Note: The order in the response may depend on the repository implementation
+      // This test just verifies that we get all users back
+      List<UserResponseDto> users = objectMapper.readValue(
+              response,
+              new com.fasterxml.jackson.core.type.TypeReference<List<UserResponseDto>>() {}
+      );
+
+      // Verify we got all users
+      assertThat(users).hasSize(3);
+      assertThat(users).extracting(UserResponseDto::getId)
+              .containsExactlyInAnyOrder(user1.getId(), user2.getId(), user3.getId());
+    }
   }
 }

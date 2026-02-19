@@ -109,8 +109,8 @@ The application supports multiple profiles:
 | `POST` | `/api/v1/cards/search` | Search cards with criteria |
 
 ### API Documentation
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI Spec: `http://localhost:8080/v3/api-docs`
+- Swagger UI: `http://localhost:8081/swagger-ui.html`
+- OpenAPI Spec: `http://localhost:8081/v3/api-docs`
 
 ---
 

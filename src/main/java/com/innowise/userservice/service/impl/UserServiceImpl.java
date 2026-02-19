@@ -163,4 +163,10 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
   }
 
+  public List<UserResponseDto> getUsersByIds(List<Long> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return List.of();
+    }
+    return userMapper.toResponseDtoList(userRepository.findAllById(ids));
+  }
 }

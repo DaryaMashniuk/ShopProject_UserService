@@ -32,6 +32,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -485,6 +486,158 @@ class UserServiceImplTest {
       assertNotNull(result);
       assertEquals(testUser.getId(), result.getId());
       verify(userRepository).findById(1L);
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Users By Ids Tests")
+  class GetUsersByIdsTests {
+
+    @Test
+    @DisplayName("Should return list of UserResponseDto when valid ids provided")
+    void shouldReturnUserResponseDtoListWhenValidIdsProvided() {
+      List<Long> userIds = List.of(1L, 2L);
+      User secondUser = User.builder()
+              .id(2L)
+              .name("Jane")
+              .surname("Smith")
+              .email("jane.smith@example.com")
+              .birthDate(LocalDate.of(1992, 5, 20))
+              .active(true)
+              .build();
+
+      UserResponseDto secondUserResponseDto = UserResponseDto.builder()
+              .id(2L)
+              .name("Jane")
+              .surname("Smith")
+              .email("jane.smith@example.com")
+              .birthDate(LocalDate.of(1992, 5, 20))
+              .active(true)
+              .build();
+
+      List<User> users = List.of(testUser, secondUser);
+      List<UserResponseDto> expectedResponseDtos = List.of(userResponseDto, secondUserResponseDto);
+
+      when(userRepository.findAllById(userIds)).thenReturn(users);
+      when(userMapper.toResponseDtoList(users)).thenReturn(expectedResponseDtos);
+
+      List<UserResponseDto> result = userService.getUsersByIds(userIds);
+
+      assertNotNull(result);
+      assertEquals(2, result.size());
+      assertEquals(expectedResponseDtos, result);
+
+      verify(userRepository).findAllById(userIds);
+      verify(userMapper).toResponseDtoList(users);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when userRepository returns empty list")
+    void shouldReturnEmptyListWhenRepositoryReturnsEmptyList() {
+
+      List<Long> userIds = List.of(99L, 100L);
+      List<User> emptyUserList = Collections.emptyList();
+      List<UserResponseDto> emptyResponseList = Collections.emptyList();
+
+      when(userRepository.findAllById(userIds)).thenReturn(emptyUserList);
+      when(userMapper.toResponseDtoList(emptyUserList)).thenReturn(emptyResponseList);
+
+      List<UserResponseDto> result = userService.getUsersByIds(userIds);
+
+      assertNotNull(result);
+      assertEquals(0, result.size());
+      assertTrue(result.isEmpty());
+
+      verify(userRepository).findAllById(userIds);
+      verify(userMapper).toResponseDtoList(emptyUserList);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when input ids list is null")
+    void shouldReturnEmptyListWhenIdsListIsNull() {
+
+      List<UserResponseDto> result = userService.getUsersByIds(null);
+
+      assertNotNull(result);
+      assertEquals(0, result.size());
+      assertTrue(result.isEmpty());
+
+      verify(userRepository, never()).findAllById(any());
+      verify(userMapper, never()).toResponseDtoList(any());
+    }
+
+    @Test
+    @DisplayName("Should return empty list when input ids list is empty")
+    void shouldReturnEmptyListWhenIdsListIsEmpty() {
+      List<UserResponseDto> result = userService.getUsersByIds(Collections.emptyList());
+
+      assertNotNull(result);
+      assertEquals(0, result.size());
+      assertTrue(result.isEmpty());
+
+      verify(userRepository, never()).findAllById(any());
+      verify(userMapper, never()).toResponseDtoList(any());
+    }
+
+    @Test
+    @DisplayName("Should return only found users when some ids don't exist")
+    void shouldReturnOnlyFoundUsersWhenSomeIdsDontExist() {
+      List<Long> userIds = List.of(1L, 999L);
+      List<User> foundUsers = List.of(testUser);
+      List<UserResponseDto> expectedResponseDtos = List.of(userResponseDto);
+
+      when(userRepository.findAllById(userIds)).thenReturn(foundUsers);
+      when(userMapper.toResponseDtoList(foundUsers)).thenReturn(expectedResponseDtos);
+
+      List<UserResponseDto> result = userService.getUsersByIds(userIds);
+
+      assertNotNull(result);
+      assertEquals(1, result.size());
+      assertEquals(userResponseDto.getId(), result.get(0).getId());
+
+      verify(userRepository).findAllById(userIds);
+      verify(userMapper).toResponseDtoList(foundUsers);
+    }
+
+    @Test
+    @DisplayName("Should preserve order of users as returned by repository")
+    void shouldPreserveOrderOfUsersAsReturnedByRepository() {
+
+      List<Long> userIds = List.of(2L, 1L);
+
+      User secondUser = User.builder()
+              .id(2L)
+              .name("Jane")
+              .surname("Smith")
+              .email("jane.smith@example.com")
+              .birthDate(LocalDate.of(1992, 5, 20))
+              .active(true)
+              .build();
+
+      UserResponseDto secondUserResponseDto = UserResponseDto.builder()
+              .id(2L)
+              .name("Jane")
+              .surname("Smith")
+              .email("jane.smith@example.com")
+              .birthDate(LocalDate.of(1992, 5, 20))
+              .active(true)
+              .build();
+
+      List<User> users = List.of(testUser, secondUser);
+      List<UserResponseDto> expectedResponseDtos = List.of(userResponseDto, secondUserResponseDto);
+
+      when(userRepository.findAllById(userIds)).thenReturn(users);
+      when(userMapper.toResponseDtoList(users)).thenReturn(expectedResponseDtos);
+
+      List<UserResponseDto> result = userService.getUsersByIds(userIds);
+
+      assertNotNull(result);
+      assertEquals(2, result.size());
+      assertEquals(1L, result.get(0).getId());
+      assertEquals(2L, result.get(1).getId());
+
+      verify(userRepository).findAllById(userIds);
+      verify(userMapper).toResponseDtoList(users);
     }
   }
 }
