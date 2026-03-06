@@ -6,6 +6,6 @@ RUN mvn clean install -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/app
-EXPOSE 8080
+EXPOSE 8081
 COPY --from=builder /opt/app/target/*.jar app.jar
 ENTRYPOINT ["java","-jar","app.jar"]

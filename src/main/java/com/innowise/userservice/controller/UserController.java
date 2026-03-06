@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/v1/users")
@@ -32,6 +35,7 @@ public class UserController implements UserControllerApi {
   private final UserService userService;
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PostMapping
   public ResponseEntity<UserResponseDto> createUser(@RequestBody @Valid UserRequestDto userRequestDto) {
     UserResponseDto createdUser = userService.createUser(userRequestDto);
@@ -39,6 +43,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @GetMapping
   public ResponseEntity<PageResponseDto<UserResponseDto>> getUsers(
           @RequestParam(required = false) String name,
@@ -52,6 +57,10 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PreAuthorize(
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
+  )
   @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable("id") Long id) {
     UserResponseDto user = userService.findUserById(id);
@@ -59,6 +68,10 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PreAuthorize(
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
+  )
   @PutMapping("/{id}")
   public ResponseEntity<UserResponseDto> updateUser(@PathVariable("id") Long id,
                                                     @RequestBody @Valid UserRequestDto userRequestDto) {
@@ -67,6 +80,7 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PatchMapping("/{id}")
   public ResponseEntity<Void> updateUserStatus(@PathVariable("id") Long id, @RequestBody @Valid ChangeStatusRequestDto statusDto) {
     userService.updateUserActiveStatusById(id, statusDto.getActive());
@@ -74,6 +88,10 @@ public class UserController implements UserControllerApi {
   }
 
   @Override
+  @PreAuthorize(
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelf(#id, authentication)"
+  )
   @GetMapping("/{id}/cards")
   public ResponseEntity<UserWithCardsDto> getUserWithCards(@PathVariable("id") Long id) {
     UserWithCardsDto user = userService.findUserWithCardsByUserId(id);
@@ -83,10 +101,18 @@ public class UserController implements UserControllerApi {
 
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
     userService.deleteUserById(id);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
+  @GetMapping("/batch")
+  public ResponseEntity<List<UserResponseDto>> getUsersByIds(@RequestParam List<Long> ids) {
+    return ResponseEntity.ok(userService.getUsersByIds(ids));
   }
 
 }

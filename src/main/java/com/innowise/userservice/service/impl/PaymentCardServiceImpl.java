@@ -122,4 +122,14 @@ public class PaymentCardServiceImpl implements PaymentCardService {
     }
     return pageResponseMapper.mapToDto(cards, paymentCardMapper::toResponseDto);
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public boolean isCardOwnedByUser(Long cardId, Long userId) {
+    PaymentCard card = paymentCardRepository.findById(cardId)
+            .orElseThrow(() -> new ResourceNotFoundException("Card", "id",cardId));
+
+    return card.getUser().getId().equals(userId);
+  }
+
 }

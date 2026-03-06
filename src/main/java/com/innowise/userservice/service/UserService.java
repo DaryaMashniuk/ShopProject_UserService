@@ -64,4 +64,6 @@ public interface UserService {
    * Gets user entity by ID
    */
   User getUserEntity(Long id);
+
+  List<UserResponseDto> getUsersByIds(List<Long> ids);
 }

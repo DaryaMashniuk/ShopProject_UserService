@@ -48,4 +48,9 @@ public interface PaymentCardService {
    * Searches payment cards by criteria with pagination
    */
   PageResponseDto<PaymentCardResponseDto> findAllPaymentCards(CardSearchCriteriaDto searchCriteria, Pageable pageable);
+
+  /**
+   * Confirms if this card belongs to the user
+   */
+  boolean isCardOwnedByUser(Long cardId, Long userId);
 }

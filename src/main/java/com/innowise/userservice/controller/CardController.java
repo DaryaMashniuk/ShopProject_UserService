@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,6 +32,7 @@ public class CardController implements CardControllerApi {
   private final PaymentCardService paymentCardService;
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PostMapping
   public ResponseEntity<PaymentCardResponseDto> createCard(@RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto) {
     PaymentCardResponseDto createdCard = paymentCardService.createPaymentCard(paymentCardRequestDto);
@@ -38,6 +40,7 @@ public class CardController implements CardControllerApi {
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @GetMapping
   public ResponseEntity<PageResponseDto<PaymentCardResponseDto>> getAllPaymentCards(
           @RequestParam(required = false) String number,
@@ -49,18 +52,24 @@ public class CardController implements CardControllerApi {
   }
 
   @Override
+  @PreAuthorize(
+          "@authorisationService.hasAdminRole(authentication) or " +
+                  "@authorisationService.isSelfCard(#id, authentication)"
+  )
   @GetMapping("/{id}")
   public ResponseEntity<PaymentCardResponseDto> getCardById(@PathVariable Long id) {
     return ResponseEntity.ok(paymentCardService.findPaymentCardById(id));
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PutMapping("/{id}")
   public ResponseEntity<PaymentCardResponseDto> updateCard(@PathVariable Long id, @RequestBody @Valid PaymentCardRequestDto paymentCardRequestDto) {
     return ResponseEntity.ok(paymentCardService.updatePaymentCardById(paymentCardRequestDto, id));
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @PatchMapping("/{id}")
   public ResponseEntity<Void> updateCardStatus(@PathVariable("id") Long id, @RequestBody @Valid ChangeStatusRequestDto statusDto) {
     paymentCardService.updatePaymentCardStatusById(id, statusDto.getActive());
@@ -68,6 +77,7 @@ public class CardController implements CardControllerApi {
   }
 
   @Override
+  @PreAuthorize("@authorisationService.hasAdminRole(authentication)")
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteCardById(@PathVariable Long id) {
     paymentCardService.deletePaymentCardById(id);

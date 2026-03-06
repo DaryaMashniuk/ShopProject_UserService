@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 @Tag(name = "User Management", description = "API for managing system users")
 @RequestMapping("/api/v1/users")
 public interface UserControllerApi {
@@ -200,4 +202,44 @@ public interface UserControllerApi {
   @DeleteMapping("/{id}")
   ResponseEntity<Void> deleteUser(@PathVariable("id") Long id);
 
+  @Operation(
+          summary = "Get users by batch IDs",
+          description = "Retrieves multiple users by their IDs in a single request. Useful for batch operations and reducing network calls when multiple user records are needed."
+  )
+  @ApiResponses(value = {
+          @ApiResponse(
+                  responseCode = "200",
+                  description = "Users successfully retrieved. Returns an array of user objects. The list may be empty if no users found for the provided IDs.",
+                  content = @Content(
+                          mediaType = "application/json",
+                          schema = @Schema(implementation = UserResponseDto.class)
+                  )
+          ),
+          @ApiResponse(
+                  responseCode = "400",
+                  description = "Invalid request parameters. Possible causes: empty IDs list, malformed ID values, or invalid ID format.",
+                  content = @Content(
+                          mediaType = "application/json",
+                          schema = @Schema(implementation = ErrorResponse.class)
+                  )
+          ),
+          @ApiResponse(
+                  responseCode = "403",
+                  description = "Access denied. Only users with ADMIN role can access this endpoint.",
+                  content = @Content(
+                          mediaType = "application/json",
+                          schema = @Schema(implementation = ErrorResponse.class)
+                  )
+          ),
+          @ApiResponse(
+                  responseCode = "500",
+                  description = "Internal server error occurred while processing the request",
+                  content = @Content(
+                          mediaType = "application/json",
+                          schema = @Schema(implementation = ErrorResponse.class)
+                  )
+          )
+  })
+  @GetMapping("/batch")
+  ResponseEntity<List<UserResponseDto>> getUsersByIds(@RequestParam List<Long> ids);
 }

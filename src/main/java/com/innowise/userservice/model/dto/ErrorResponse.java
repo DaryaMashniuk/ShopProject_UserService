@@ -3,6 +3,7 @@ package com.innowise.userservice.model.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,6 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "DTO for API error response")
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
   @Schema(description = "Error timestamp", example = "2024-01-18T22:11:17.239Z")
