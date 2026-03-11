@@ -20,6 +20,13 @@ import java.time.LocalDate;
 public class UserRequestDto {
 
   @Schema(
+          description = "Unique user identifier",
+          example = "1",
+          requiredMode = Schema.RequiredMode.REQUIRED
+  )
+  private Long id;
+
+  @Schema(
           description = "User's first name",
           example = "John",
           requiredMode = Schema.RequiredMode.REQUIRED
