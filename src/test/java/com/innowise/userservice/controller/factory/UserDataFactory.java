@@ -13,7 +13,7 @@ import java.util.List;
 public class UserDataFactory {
 
   private final UserRepository userRepository;
-
+  private static long idCounter = 1;
   public UserDataFactory(UserRepository userRepository) {
     this.userRepository = userRepository;
   }
@@ -23,6 +23,7 @@ public class UserDataFactory {
     String unique = java.util.UUID.randomUUID().toString().substring(0, 8);
     List<PaymentCard> cards = new ArrayList<>();
     User user = User.builder()
+            .id(idCounter++)
             .name("User" + unique)
             .surname("Surname" + unique)
             .email("user" + unique + "@test.com")

@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -32,8 +33,8 @@ import java.util.List;
 @Transactional
 public class UserServiceImpl implements UserService {
 
-  private final UserRepository userRepository;
   private static final Logger logger = LogManager.getLogger(UserServiceImpl.class);
+  private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final PageResponseMapper pageResponseMapper;
 
@@ -41,11 +42,11 @@ public class UserServiceImpl implements UserService {
   @Override
   public UserResponseDto createUser(UserRequestDto userRequestDto) {
     User user = userMapper.toEntity(userRequestDto);
-      if (existsByEmail(user.getEmail())) {
-        throw new UserAlreadyExistsWithEmailException("User with email " + user.getEmail() + " already exists");
-      }
-      User savedUser = userRepository.save(user);
-      return userMapper.toResponseDto(savedUser);
+    if (existsByEmail(user.getEmail())) {
+      throw new UserAlreadyExistsWithEmailException("User with email " + user.getEmail() + " already exists");
+    }
+    User savedUser = userRepository.save(user);
+    return userMapper.toResponseDto(savedUser);
   }
 
   @Override
@@ -91,11 +92,11 @@ public class UserServiceImpl implements UserService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
-      if (userRequestDto.getEmail() != null &&
-              !userRequestDto.getEmail().equals(newUser.getEmail()) &&
-              existsByEmail(userRequestDto.getEmail())) {
-          throw new UserAlreadyExistsWithEmailException("User with email " + userRequestDto.getEmail() + " already exists");
-      }
+    if (userRequestDto.getEmail() != null &&
+            !userRequestDto.getEmail().equals(newUser.getEmail()) &&
+            existsByEmail(userRequestDto.getEmail())) {
+      throw new UserAlreadyExistsWithEmailException("User with email " + userRequestDto.getEmail() + " already exists");
+    }
 
     userMapper.updateEntityFromDto(userRequestDto, newUser);
     return userMapper.toResponseDto(newUser);
@@ -109,16 +110,16 @@ public class UserServiceImpl implements UserService {
   public void deleteUserById(long id) {
     User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-    logger.info("Deleting user with id ={}",id);
+    logger.info("Deleting user with id ={}", id);
     userRepository.delete(user);
   }
 
   @Caching(evict = {
           @CacheEvict(value = "users", key = "#id"),
           @CacheEvict(value = "users-with-cards", key = "#id"),
-})
+  })
   @Override
-  public void updateUserActiveStatusById(long id,boolean status) {
+  public void updateUserActiveStatusById(long id, boolean status) {
     User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
     user.setActive(status);
