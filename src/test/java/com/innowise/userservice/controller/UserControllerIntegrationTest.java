@@ -126,6 +126,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should create user successfully with valid request and cache result")
     void shouldCreateUserSuccessfully() throws Exception {
       UserRequestDto newUserRequest = UserRequestDto.builder()
+              .id(100L)
               .name("New")
               .surname("User")
               .email("new.user@example.com")
@@ -173,6 +174,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should return 409 when creating user with existing email")
     void shouldReturnConflictWhenEmailExists() throws Exception {
       UserRequestDto duplicateUser = UserRequestDto.builder()
+              .id(100L)
               .name("Another")
               .surname("User")
               .email(testUser.getEmail())
@@ -193,6 +195,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
       when(authorisationService.hasAdminRole(any( ))).thenReturn(false);
       when(authorisationService.isSelf(eq(testUser.getId()), any())).thenReturn(false);
       UserRequestDto newUserRequest = UserRequestDto.builder()
+              .id(100L)
               .name("New")
               .surname("User")
               .email("new.user@example.com")
@@ -347,6 +350,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
       userDataFactory.createRandomUser();
 
       User inactiveUser = User.builder()
+              .id(100L)
               .name("Inactive")
               .surname("User")
               .email("inactive" + System.currentTimeMillis() + "@example.com")

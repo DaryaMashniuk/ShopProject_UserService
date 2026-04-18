@@ -72,6 +72,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
 
   private void initTestData() {
     testUser = userRepository.save(User.builder()
+            .id(100L)
             .name("John")
             .surname("Doe")
             .email("john.doe@example.com")
@@ -266,6 +267,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should get all cards with pagination successfully")
     void shouldGetAllCardsWithPagination() throws Exception {
       User user1 = userRepository.save(User.builder()
+              .id(100L)
               .name("User1")
               .surname("Test1")
               .email("user1@test.com")
@@ -474,6 +476,7 @@ class CardControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should search cards by criteria successfully")
     void shouldSearchCardsByCriteriaSuccessfully() throws Exception {
       User user = userRepository.save(User.builder()
+              .id(100L)
               .name("Search")
               .surname("User")
               .email("search@test.com")
